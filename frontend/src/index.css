@@ -1,0 +1,23 @@
+:root {
+  color-scheme: light;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  background: #f6f6f6;
+  color: #111111;
+}
+
+/* 强制表单控件清晰可见（避免暗色模式把输入框变黑） */
+input, select, textarea, button {
+  color: #111111;
+}
+
+input, select, textarea {
+  background: #ffffff;
+}

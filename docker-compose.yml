@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16
+    container_name: road_db
+    environment:
+      POSTGRES_USER: road
+      POSTGRES_PASSWORD: road
+      POSTGRES_DB: road
+    ports:
+      - "5432:5432"
+    volumes:
+      - road_db_data:/var/lib/postgresql/data
+
+volumes:
+  road_db_data:

@@ -1,0 +1,9 @@
+{
+  "python.defaultInterpreterPath": "/Users/baji/Desktop/road-monitoring-system/backend/.venv/bin/python",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}"
+  ],
+  "python.analysis.typeCheckingMode": "basic",
+  "python-envs.pythonProjects": []
+
+}
