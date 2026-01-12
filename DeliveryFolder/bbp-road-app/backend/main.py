@@ -246,27 +246,6 @@ OSRM_BASE_URL = "http://router.project-osrm.org"
 OSRM_TIMEOUT = 10.0
 
 
-async def fetch_osrm_route_async(
-    from_lat: float, from_lon: float,
-    to_lat: float, to_lon: float,
-    profile: str = "bike"
-) -> Optional[Dict[str, Any]]:
-    """Fetch route from OSRM asynchronously."""
-    # OSRM uses 'cycling' profile
-    url = (
-        f"{OSRM_BASE_URL}/route/v1/{profile}/"
-        f"{from_lon},{from_lat};{to_lon},{to_lat}"
-        "?overview=full&geometries=geojson&alternatives=true&steps=true"
-    )
-    try:
-        async with httpx.AsyncClient() as client:
-            resp = await client.get(url, timeout=OSRM_TIMEOUT)
-            resp.raise_for_status()
-            return resp.json()
-    except Exception:
-        return None
-
-
 def fetch_osrm_route(
     from_lat: float, from_lon: float,
     to_lat: float, to_lon: float,
@@ -290,9 +269,124 @@ def fetch_osrm_route(
         if data.get("code") == "Ok" and data.get("routes"):
             return data
         return None
-    except Exception as e:
-        print(f"OSRM request failed: {e}")
+    except Exception:
         return None
+
+
+def fetch_osrm_route_via_waypoint(
+    from_lat: float, from_lon: float,
+    via_lat: float, via_lon: float,
+    to_lat: float, to_lon: float,
+    profile: str = "bike"
+) -> Optional[Dict[str, Any]]:
+    """
+    Fetch route from OSRM with an intermediate waypoint.
+    Used to generate diverse candidate routes.
+    """
+    url = (
+        f"{OSRM_BASE_URL}/route/v1/{profile}/"
+        f"{from_lon},{from_lat};{via_lon},{via_lat};{to_lon},{to_lat}"
+        "?overview=full&geometries=geojson&alternatives=false&steps=true"
+    )
+    try:
+        resp = httpx.get(url, timeout=OSRM_TIMEOUT)
+        resp.raise_for_status()
+        data = resp.json()
+        if data.get("code") == "Ok" and data.get("routes"):
+            return data
+        return None
+    except Exception:
+        return None
+
+
+def calculate_perpendicular_waypoints(
+    origin_lat: float, origin_lon: float,
+    dest_lat: float, dest_lon: float,
+    offset_fraction: float = 0.15
+) -> List[Tuple[float, float]]:
+    """
+    Calculate two waypoints perpendicular to the direct origin->dest line.
+    These waypoints are used to generate diverse alternative routes.
+    
+    Returns list of (lat, lon) tuples for North/East and South/West offsets.
+    """
+    # Calculate midpoint
+    mid_lat = (origin_lat + dest_lat) / 2.0
+    mid_lon = (origin_lon + dest_lon) / 2.0
+    
+    # Calculate direction vector from origin to dest
+    dlat = dest_lat - origin_lat
+    dlon = dest_lon - origin_lon
+    
+    # Calculate perpendicular vector (rotate 90 degrees)
+    # Perpendicular to (dlat, dlon) is (-dlon, dlat) or (dlon, -dlat)
+    perp_lat = -dlon
+    perp_lon = dlat
+    
+    # Normalize the perpendicular vector
+    length = math.sqrt(perp_lat * perp_lat + perp_lon * perp_lon)
+    if length < 1e-9:
+        return []
+    perp_lat /= length
+    perp_lon /= length
+    
+    # Calculate the direct distance in degrees (approximate)
+    direct_dist = math.sqrt(dlat * dlat + dlon * dlon)
+    
+    # Offset distance is a fraction of the direct distance
+    offset = direct_dist * offset_fraction
+    
+    # Generate two waypoints on opposite sides
+    waypoint1 = (mid_lat + perp_lat * offset, mid_lon + perp_lon * offset)
+    waypoint2 = (mid_lat - perp_lat * offset, mid_lon - perp_lon * offset)
+    
+    return [waypoint1, waypoint2]
+
+
+def routes_are_similar(route1_coords: List[List[float]], route2_coords: List[List[float]], 
+                       route1_dist: float, route2_dist: float,
+                       distance_threshold: float = 0.02,
+                       coord_similarity_threshold: float = 0.8) -> bool:
+    """
+    Check if two routes are essentially the same.
+    Returns True if routes are similar (should be deduplicated).
+    
+    Uses two criteria:
+    1. Distance similarity (within threshold percentage)
+    2. Coordinate overlap (percentage of points that are close)
+    """
+    # Check distance similarity
+    if route1_dist > 0 and route2_dist > 0:
+        dist_diff = abs(route1_dist - route2_dist) / max(route1_dist, route2_dist)
+        if dist_diff > distance_threshold:
+            return False  # Significantly different distances = different routes
+    
+    # Check coordinate similarity by sampling
+    if not route1_coords or not route2_coords:
+        return True
+    
+    # Sample every Nth point from route1 and check if it's close to route2
+    sample_step = max(1, len(route1_coords) // 10)
+    close_count = 0
+    total_sampled = 0
+    
+    for i in range(0, len(route1_coords), sample_step):
+        total_sampled += 1
+        pt1 = route1_coords[i]
+        
+        # Check if this point is close to any point in route2
+        min_dist = float('inf')
+        for pt2 in route2_coords:
+            dist = math.sqrt((pt1[0] - pt2[0])**2 + (pt1[1] - pt2[1])**2)
+            min_dist = min(min_dist, dist)
+            if dist < 0.0005:  # ~50m tolerance
+                break
+        
+        if min_dist < 0.0005:
+            close_count += 1
+    
+    similarity = close_count / total_sampled if total_sampled > 0 else 1.0
+    return similarity >= coord_similarity_threshold
 
 # CORS for Vite dev server (5173) and local builds
 app.add_middleware(
@@ -1772,10 +1866,25 @@ def path_search(
     user_id: Optional[int] = Query(default=None)
 ):
     """
-    Search for routes with road quality scoring.
+    Search for routes with road quality scoring using "Generate & Evaluate" strategy.
     
-    Uses OSRM for real road geometry, falls back to math-based routes if OSRM fails.
-    Returns 1-3 candidate routes sorted by score (best first).
+    Algorithm:
+    1. Candidate Generation: Get distinct real paths from OSRM
+       - Candidate 1: Direct route (Origin -> Dest)
+       - Candidate 2-3: Routes via perpendicular waypoints for diversity
+       - Validate routes are actually different (not 99% identical)
+    
+    2. Scoring & Ranking: Grade each candidate against local pothole/segment data
+       - safety_first: Sort by road_quality_score descending (best surface first)
+       - shortest: Sort by total_distance ascending
+       - balanced: Sort by weighted score ascending
+    
+    3. Tagging: Apply tags after ranking based on actual properties
+       - "Recommended": Top ranked route
+       - "Best Surface": road_quality_score > 90
+       - "Fastest": Shortest distance route
+    
+    Returns 1-3 candidate routes sorted by preference.
     Includes weather information and localized labels.
     """
     origin = req.origin
@@ -1786,7 +1895,9 @@ def path_search(
     candidates = []
     route_source = "osrm"
     
-    # Try to get real routes from OSRM
+    # ====== PHASE 1: CANDIDATE GENERATION ======
+    
+    # Candidate 1: Direct route from OSRM (may include OSRM's own alternatives)
     osrm_data = fetch_osrm_route(
         origin.lat, origin.lon,
         dest.lat, dest.lon,
@@ -1795,53 +1906,177 @@ def path_search(
     )
     
     if osrm_data and osrm_data.get("routes"):
-        # Process OSRM routes
-        osrm_routes = osrm_data["routes"]
-        route_labels = ["A", "B", "C", "D", "E"]
-        
-        for idx, route in enumerate(osrm_routes[:3]):
-            coords = route["geometry"]["coordinates"]  # Already in [lon, lat] format
+        # Add direct route(s) from OSRM
+        for route in osrm_data["routes"][:2]:  # Take max 2 from OSRM's alternatives
+            coords = route["geometry"]["coordinates"]
             distance_m = route["distance"]
             duration_s = route["duration"]
-            
-            # Find segments near this route and calculate score
-            nearby_segs = find_segments_near_route(coords)
-            score, quality_score, pothole_count, bad_road_len, tags, warnings = calculate_route_score(
-                distance_m, nearby_segs, preferences
-            )
-            
-            # Add route-specific tags
-            if idx == 0:
-                # First OSRM route is typically the recommended one
-                if preferences == "shortest":
-                    tags = ["Fastest"] + [t for t in tags if t != "Best Surface"]
-                else:
-                    tags.insert(0, "Recommended")
-            else:
-                tags.insert(0, "Alternative")
-            
             candidates.append({
-                "route_id": route_labels[idx],
                 "coords": coords,
                 "distance_m": distance_m,
                 "duration_s": duration_s,
-                "score": score,
-                "quality_score": quality_score,
-                "tags": tags,
-                "warnings": warnings,
-                "source": "osrm",
+                "source": "osrm_direct",
             })
-    else:
-        # Fallback to math-based routes
+        
+        # Candidates 2-3: Routes via perpendicular waypoints for diversity
+        waypoints = calculate_perpendicular_waypoints(
+            origin.lat, origin.lon,
+            dest.lat, dest.lon,
+            offset_fraction=0.15  # 15% of direct distance
+        )
+        
+        for wp_lat, wp_lon in waypoints:
+            via_data = fetch_osrm_route_via_waypoint(
+                origin.lat, origin.lon,
+                wp_lat, wp_lon,
+                dest.lat, dest.lon,
+                profile="bike"
+            )
+            if via_data and via_data.get("routes"):
+                route = via_data["routes"][0]
+                coords = route["geometry"]["coordinates"]
+                distance_m = route["distance"]
+                duration_s = route["duration"]
+                
+                # Validation: Check if this route is actually different from existing candidates
+                is_duplicate = False
+                for existing in candidates:
+                    if routes_are_similar(
+                        coords, existing["coords"],
+                        distance_m, existing["distance_m"]
+                    ):
+                        is_duplicate = True
+                        break
+                
+                if not is_duplicate:
+                    candidates.append({
+                        "coords": coords,
+                        "distance_m": distance_m,
+                        "duration_s": duration_s,
+                        "source": "osrm_via_waypoint",
+                    })
+        
+        # If we still have less than 2 candidates, try with different offset
+        if len(candidates) < 2:
+            waypoints_small = calculate_perpendicular_waypoints(
+                origin.lat, origin.lon,
+                dest.lat, dest.lon,
+                offset_fraction=0.08  # Smaller offset
+            )
+            for wp_lat, wp_lon in waypoints_small:
+                if len(candidates) >= 3:
+                    break
+                via_data = fetch_osrm_route_via_waypoint(
+                    origin.lat, origin.lon,
+                    wp_lat, wp_lon,
+                    dest.lat, dest.lon,
+                    profile="bike"
+                )
+                if via_data and via_data.get("routes"):
+                    route = via_data["routes"][0]
+                    coords = route["geometry"]["coordinates"]
+                    distance_m = route["distance"]
+                    
+                    is_duplicate = False
+                    for existing in candidates:
+                        if routes_are_similar(coords, existing["coords"], distance_m, existing["distance_m"]):
+                            is_duplicate = True
+                            break
+                    
+                    if not is_duplicate:
+                        candidates.append({
+                            "coords": coords,
+                            "distance_m": distance_m,
+                            "duration_s": route["duration"],
+                            "source": "osrm_via_waypoint",
+                        })
+    
+    # Fallback to math-based routes if OSRM fails
+    if not candidates:
         route_source = "fallback"
         candidates = _generate_fallback_routes(
             origin.lat, origin.lon,
             dest.lat, dest.lon,
             preferences
         )
+        # Skip scoring phase for fallback routes (already scored)
+        # Jump directly to response building
+        candidates_scored = candidates
+    else:
+        # ====== PHASE 2: SCORING & RANKING ======
+        candidates_scored = []
+        
+        for candidate in candidates[:3]:  # Max 3 candidates
+            coords = candidate["coords"]
+            distance_m = candidate["distance_m"]
+            duration_s = candidate["duration_s"]
+            
+            # Find segments near this route and calculate score
+            nearby_segs = find_segments_near_route(coords)
+            score, quality_score, pothole_count, bad_road_len, base_tags, warnings = calculate_route_score(
+                distance_m, nearby_segs, preferences
+            )
+            
+            candidates_scored.append({
+                "coords": coords,
+                "distance_m": distance_m,
+                "duration_s": duration_s,
+                "score": score,
+                "quality_score": quality_score,
+                "pothole_count": pothole_count,
+                "bad_road_len": bad_road_len,
+                "base_tags": base_tags,
+                "warnings": warnings,
+                "source": candidate["source"],
+            })
+        
+        # Sort based on user preference
+        if preferences == "safety_first":
+            # Sort by road_quality_score DESCENDING (higher quality = better)
+            candidates_scored.sort(key=lambda x: -x["quality_score"])
+        elif preferences == "shortest":
+            # Sort by distance ASCENDING (shorter = better)
+            candidates_scored.sort(key=lambda x: x["distance_m"])
+        else:  # balanced
+            # Sort by weighted score ASCENDING (lower score = better)
+            candidates_scored.sort(key=lambda x: x["score"])
     
-    # Sort by score (lower is better)
-    candidates.sort(key=lambda x: x["score"])
+    # ====== PHASE 3: TAGGING (After Ranking) ======
+    
+    # Find which route is the shortest (for "Fastest" tag)
+    if candidates_scored:
+        min_distance = min(c["distance_m"] for c in candidates_scored)
+    else:
+        min_distance = float('inf')
+    
+    # Assign route IDs and tags
+    route_labels = ["A", "B", "C", "D", "E"]
+    for idx, candidate in enumerate(candidates_scored):
+        candidate["route_id"] = route_labels[idx]
+        
+        # Start with base tags from scoring (e.g., "Bumpy", "Road Work", "Poor Surface")
+        tags = list(candidate.get("base_tags", []))
+        
+        # Remove "Best Surface" if it exists - we'll re-add it based on actual quality
+        tags = [t for t in tags if t not in ("Best Surface", "Fastest", "Recommended", "Alternative")]
+        
+        # Add "Recommended" to top-ranked route
+        if idx == 0:
+            tags.insert(0, "Recommended")
+        else:
+            tags.insert(0, "Alternative")
+        
+        # Add "Best Surface" if quality score > 90 (regardless of rank)
+        if candidate["quality_score"] > 90:
+            if "Best Surface" not in tags:
+                tags.append("Best Surface")
+        
+        # Add "Fastest" to the route with shortest distance
+        if abs(candidate["distance_m"] - min_distance) < 1.0:  # Within 1m tolerance
+            if "Fastest" not in tags:
+                tags.append("Fastest")
+        
+        candidate["tags"] = tags
     
     # Get weather for the route
     mid_lat = (origin.lat + dest.lat) / 2
@@ -1852,13 +2087,13 @@ def path_search(
     
     # Build response with localized labels
     routes = []
-    for rank, candidate in enumerate(candidates, start=1):
+    for rank, candidate in enumerate(candidates_scored, start=1):
         # Translate tags
         tags_localized = translate_list(candidate["tags"], lang)
         
         # Translate warnings
         warnings_localized = []
-        for w in candidate["warnings"]:
+        for w in candidate.get("warnings", []):
             w_copy = dict(w)
             w_copy["type_localized"] = translate(w["type"], lang)
             warnings_localized.append(w_copy)
@@ -1874,9 +2109,9 @@ def path_search(
             "tags_localized": tags_localized,
             "geometry": encode_polyline(candidate["coords"]),
             "geometry_geojson": {"type": "LineString", "coordinates": candidate["coords"]},
-            "segments_warning": candidate["warnings"],
+            "segments_warning": candidate.get("warnings", []),
             "segments_warning_localized": warnings_localized,
-            "source": candidate["source"],
+            "source": candidate.get("source", route_source),
         })
     
     return {
@@ -1885,6 +2120,9 @@ def path_search(
         "weather": weather,
         "cycling_recommendation": cycling_recommendation,
         "route_source": route_source,
+        "algorithm": "generate_and_evaluate",
+        "candidates_generated": len(candidates),
+        "candidates_returned": len(routes),
     }
 
 

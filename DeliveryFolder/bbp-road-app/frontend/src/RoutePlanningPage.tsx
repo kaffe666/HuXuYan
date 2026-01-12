@@ -163,27 +163,27 @@ export default function RoutePlanningPage() {
         Plan routes with intelligent scoring based on road quality and pothole data.
       </p>
 
-      <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "350px 1fr", gap: 16 }}>
+      <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "320px 1fr", gap: 16 }}>
         {/* Left Panel - Controls */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {/* Search Form */}
           <div
             style={{
-              padding: 16,
+              padding: 14,
               background: "white",
               border: "1px solid #eee",
               borderRadius: 14,
             }}
           >
-            <div style={{ fontWeight: 800, marginBottom: 14, color: "#111", fontSize: 16 }}>
+            <div style={{ fontWeight: 800, marginBottom: 12, color: "#111", fontSize: 15 }}>
               🗺️ Route Search
             </div>
 
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 12, color: "#555", marginBottom: 6, fontWeight: 600 }}>
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 11, color: "#555", marginBottom: 4, fontWeight: 600 }}>
                 Origin (起点)
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
                 <input
                   style={inputStyle}
                   type="number"
@@ -203,11 +203,11 @@ export default function RoutePlanningPage() {
               </div>
             </div>
 
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 12, color: "#555", marginBottom: 6, fontWeight: 600 }}>
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 11, color: "#555", marginBottom: 4, fontWeight: 600 }}>
                 Destination (终点)
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
                 <input
                   style={inputStyle}
                   type="number"
@@ -227,8 +227,8 @@ export default function RoutePlanningPage() {
               </div>
             </div>
 
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 12, color: "#555", marginBottom: 6, fontWeight: 600 }}>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 11, color: "#555", marginBottom: 4, fontWeight: 600 }}>
                 Preference (偏好)
               </div>
               <select
@@ -247,14 +247,14 @@ export default function RoutePlanningPage() {
               disabled={loading}
               style={{
                 width: "100%",
-                padding: "12px 14px",
+                padding: "10px 12px",
                 borderRadius: 10,
                 border: "none",
                 background: loading ? "#9ca3af" : "#2563eb",
                 color: "white",
                 fontWeight: 700,
                 cursor: loading ? "not-allowed" : "pointer",
-                fontSize: 14,
+                fontSize: 13,
               }}
             >
               {loading ? "Searching..." : "🔍 Search Routes"}
@@ -294,79 +294,19 @@ export default function RoutePlanningPage() {
             )}
           </div>
 
-          {/* Weather Panel */}
-          {weather && (
-            <div
-              style={{
-                padding: 16,
-                background: weather.is_cycling_friendly ? "#f0fdf4" : "#fffbeb",
-                border: `1px solid ${weather.is_cycling_friendly ? "#bbf7d0" : "#fcd34d"}`,
-                borderRadius: 14,
-              }}
-            >
-              <div style={{ fontWeight: 800, marginBottom: 12, color: "#111", fontSize: 16 }}>
-                🌤️ Weather Conditions
-              </div>
-              
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                <div style={{ padding: 10, background: "white", borderRadius: 10 }}>
-                  <div style={{ fontSize: 11, color: "#666" }}>Condition</div>
-                  <div style={{ fontWeight: 700, color: "#111", marginTop: 4 }}>
-                    {weather.condition_localized || weather.condition}
-                  </div>
-                </div>
-                <div style={{ padding: 10, background: "white", borderRadius: 10 }}>
-                  <div style={{ fontSize: 11, color: "#666" }}>Temperature</div>
-                  <div style={{ fontWeight: 700, color: "#111", marginTop: 4 }}>
-                    {weather.temperature_c}°C
-                  </div>
-                </div>
-                <div style={{ padding: 10, background: "white", borderRadius: 10 }}>
-                  <div style={{ fontSize: 11, color: "#666" }}>Wind Speed</div>
-                  <div style={{ fontWeight: 700, color: "#111", marginTop: 4 }}>
-                    {weather.wind_speed_kmh} km/h
-                  </div>
-                </div>
-                <div style={{ padding: 10, background: "white", borderRadius: 10 }}>
-                  <div style={{ fontSize: 11, color: "#666" }}>Rain Chance</div>
-                  <div style={{ fontWeight: 700, color: "#111", marginTop: 4 }}>
-                    {weather.rain_chance_percent}%
-                  </div>
-                </div>
-              </div>
-
-              {cyclingRecommendation && (
-                <div
-                  style={{
-                    marginTop: 12,
-                    padding: 10,
-                    borderRadius: 10,
-                    background: weather.is_cycling_friendly ? "#dcfce7" : "#fef9c3",
-                    color: weather.is_cycling_friendly ? "#166534" : "#854d0e",
-                    fontWeight: 600,
-                    fontSize: 13,
-                    textAlign: "center",
-                  }}
-                >
-                  {weather.is_cycling_friendly ? "✓" : "⚠️"} {cyclingRecommendation}
-                </div>
-              )}
-            </div>
-          )}
-
           {/* Route Results */}
           {routes.length > 0 && (
             <div
               style={{
-                padding: 16,
+                padding: 14,
                 background: "white",
                 border: "1px solid #eee",
                 borderRadius: 14,
-                maxHeight: 400,
+                maxHeight: 350,
                 overflowY: "auto",
               }}
             >
-              <div style={{ fontWeight: 800, marginBottom: 12, color: "#111", fontSize: 16 }}>
+              <div style={{ fontWeight: 800, marginBottom: 10, color: "#111", fontSize: 15 }}>
                 📋 Candidate Routes ({routes.length})
               </div>
 
@@ -496,26 +436,74 @@ export default function RoutePlanningPage() {
           )}
         </div>
 
-        {/* Right Panel - Map */}
-        <div
-          style={{
-            background: "white",
-            border: "1px solid #eee",
-            borderRadius: 14,
-            overflow: "hidden",
-          }}
-        >
+        {/* Right Panel - Weather Bar + Map */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, minHeight: 650 }}>
+          {/* Horizontal Weather Bar */}
+          {weather && (
+            <div
+              style={{
+                padding: "10px 16px",
+                background: weather.is_cycling_friendly ? "#f0fdf4" : "#fffbeb",
+                border: `1px solid ${weather.is_cycling_friendly ? "#bbf7d0" : "#fcd34d"}`,
+                borderRadius: 12,
+              }}
+            >
+              {/* First row: Weather icon + all stats */}
+              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <span style={{ fontSize: 18 }}>🌤️</span>
+                <span style={{ fontSize: 13, color: "#666" }}>Condition:</span>
+                <span style={{ fontWeight: 600, color: "#111", marginRight: 8 }}>{weather.condition_localized || weather.condition}</span>
+                <span style={{ fontSize: 13, color: "#666" }}>Temp:</span>
+                <span style={{ fontWeight: 600, color: "#111", marginRight: 8 }}>{weather.temperature_c}°C</span>
+                <span style={{ fontSize: 13, color: "#666" }}>Wind:</span>
+                <span style={{ fontWeight: 600, color: "#111", marginRight: 8 }}>{weather.wind_speed_kmh} km/h</span>
+                <span style={{ fontSize: 13, color: "#666" }}>Rain:</span>
+                <span style={{ fontWeight: 600, color: "#111" }}>{weather.rain_chance_percent}%</span>
+              </div>
+              {/* Second row: Cycling recommendation */}
+              {cyclingRecommendation && (
+                <div
+                  style={{
+                    marginTop: 8,
+                    padding: "6px 12px",
+                    borderRadius: 8,
+                    background: weather.is_cycling_friendly ? "#dcfce7" : "#fef9c3",
+                    color: weather.is_cycling_friendly ? "#166534" : "#854d0e",
+                    fontWeight: 600,
+                    fontSize: 13,
+                    textAlign: "center",
+                  }}
+                >
+                  {weather.is_cycling_friendly ? "✓" : "⚠️"} {cyclingRecommendation}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Map Container */}
           <div
             style={{
-              padding: 12,
-              borderBottom: "1px solid #eee",
-              fontWeight: 800,
-              color: "#111",
+              background: "white",
+              border: "1px solid #eee",
+              borderRadius: 14,
+              overflow: "hidden",
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
             }}
           >
-            🗺️ Map View
-          </div>
-          <div style={{ height: 550 }}>
+            <div
+              style={{
+                padding: 10,
+                borderBottom: "1px solid #eee",
+                fontWeight: 700,
+                color: "#111",
+                fontSize: 14,
+              }}
+            >
+              🗺️ Map View
+            </div>
+            <div style={{ flex: 1, minHeight: 550 }}>
             <MapContainer center={center} zoom={13} style={{ height: "100%", width: "100%" }}>
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
@@ -569,6 +557,7 @@ export default function RoutePlanningPage() {
 
               {routes.length > 0 && <FitBounds routes={routes} origin={origin} dest={dest} />}
             </MapContainer>
+          </div>
           </div>
         </div>
       </div>
