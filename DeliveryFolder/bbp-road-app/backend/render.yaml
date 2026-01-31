@@ -1,0 +1,12 @@
+# Render.com 部署配置 (免费)
+# 后端 FastAPI 服务
+
+services:
+  - type: web
+    name: bbp-backend
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
