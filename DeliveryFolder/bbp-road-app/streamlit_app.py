@@ -48,6 +48,18 @@ def api_post(endpoint: str, json_data: dict = None, params: dict = None):
         st.error(f"API Error: {e}")
         return None
 
+def get_seg_name(seg):
+    """Get segment name from various possible fields."""
+    return seg.get("road_name") or seg.get("name") or f"Segment {seg.get('id', '?')}"
+
+def get_seg_coords(seg):
+    """Get segment coordinates, handling both naming conventions."""
+    start_lat = seg.get("start_lat") or seg.get("from_lat", 0)
+    start_lon = seg.get("start_lon") or seg.get("from_lon", 0)
+    end_lat = seg.get("end_lat") or seg.get("to_lat", 0)
+    end_lon = seg.get("end_lon") or seg.get("to_lon", 0)
+    return start_lat, start_lon, end_lat, end_lon
+
 # ============== Session State ==============
 if "user" not in st.session_state:
     st.session_state.user = None
@@ -206,7 +218,7 @@ elif menu == "🗺️ Route Planning":
                             popup=f"Route {route.get('route_id', i+1)}"
                         ).add_to(m)
                 
-                st_folium(m, width=700, height=500)
+                st_folium(m, width=700, height=500, returned_objects=[])
                 
                 # Route details
                 st.subheader("📋 Route Details")
@@ -235,11 +247,12 @@ elif menu == "📍 Segments":
     # Fetch segments
     segments = api_get("/api/segments", {"user_id": user_id})
     
-    if segments:
-        # Create map with segments
-        if segments:
-            center_lat = sum(s["from_lat"] for s in segments) / len(segments)
-            center_lon = sum(s["from_lon"] for s in segments) / len(segments)
+    if segments and len(segments) > 0:
+        # Create map with segments - use helper function for coords
+        coords_list = [get_seg_coords(s) for s in segments if get_seg_coords(s)[0] != 0]
+        if coords_list:
+            center_lat = sum(c[0] for c in coords_list) / len(coords_list)
+            center_lon = sum(c[1] for c in coords_list) / len(coords_list)
         else:
             center_lat, center_lon = 45.478, 9.227
         
@@ -253,53 +266,61 @@ elif menu == "📍 Segments":
         }
         
         for seg in segments:
-            color = status_colors.get(seg["status"], "blue")
+            start_lat, start_lon, end_lat, end_lon = get_seg_coords(seg)
+            if start_lat == 0:
+                continue
+            color = status_colors.get(seg.get("status", "unknown"), "blue")
+            name = get_seg_name(seg)
             folium.PolyLine(
-                [[seg["from_lat"], seg["from_lon"]], [seg["to_lat"], seg["to_lon"]]],
+                [[start_lat, start_lon], [end_lat, end_lon]],
                 color=color,
                 weight=5,
-                popup=f"{seg['name']}: {seg.get('status_localized', seg['status'])}"
+                popup=f"{name}: {seg.get('status_localized', seg.get('status', 'unknown'))}"
             ).add_to(m)
         
-        st_folium(m, width=700, height=400)
+        st_folium(m, width=700, height=400, returned_objects=[])
         
         # Segment list
         st.subheader("📋 Segment List")
         df = pd.DataFrame([{
             "ID": s["id"],
-            "Name": s["name"],
-            "Status": s.get("status_localized", s["status"]),
-            "Obstacles": ", ".join(s.get("obstacles", [])) or "None"
+            "Name": get_seg_name(s),
+            "Status": s.get("status_localized", s.get("status", "unknown")),
+            "Obstacles": s.get("obstacle", "None") or "None"
         } for s in segments])
         st.dataframe(df, use_container_width=True)
+    else:
+        st.info("No segments found. Add some segments to get started!")
     
     # Add new segment
     st.markdown("---")
     st.subheader("➕ Add New Segment")
     with st.form("new_segment"):
-        name = st.text_input("Segment Name", placeholder="e.g., Via Roma")
+        seg_name = st.text_input("Road Name", placeholder="e.g., Via Roma")
         col1, col2 = st.columns(2)
         with col1:
-            from_lat = st.number_input("From Latitude", value=45.478, format="%.4f")
-            from_lon = st.number_input("From Longitude", value=9.227, format="%.4f")
+            start_lat = st.number_input("Start Latitude", value=45.478, format="%.4f")
+            start_lon = st.number_input("Start Longitude", value=9.227, format="%.4f")
         with col2:
-            to_lat = st.number_input("To Latitude", value=45.479, format="%.4f")
-            to_lon = st.number_input("To Longitude", value=9.228, format="%.4f")
+            end_lat = st.number_input("End Latitude", value=45.479, format="%.4f")
+            end_lon = st.number_input("End Longitude", value=9.228, format="%.4f")
         
-        status = st.selectbox("Status", ["optimal", "medium", "suboptimal", "maintenance"])
+        seg_status = st.selectbox("Status", ["optimal", "medium", "suboptimal", "maintenance"])
+        obstacle = st.text_input("Obstacle (optional)", placeholder="e.g., pothole")
         
         if st.form_submit_button("Create Segment"):
             result = api_post("/api/segments", {
-                "name": name,
-                "from_lat": from_lat,
-                "from_lon": from_lon,
-                "to_lat": to_lat,
-                "to_lon": to_lon,
-                "status": status,
-                "user_id": user_id
+                "user_id": user_id,
+                "road_name": seg_name,
+                "start_lat": start_lat,
+                "start_lon": start_lon,
+                "end_lat": end_lat,
+                "end_lon": end_lon,
+                "status": seg_status,
+                "obstacle": obstacle if obstacle else None
             })
             if result:
-                st.success(f"✅ Segment '{name}' created!")
+                st.success(f"✅ Segment created!")
                 st.rerun()
 
 # ============== Reports ==============
@@ -310,7 +331,16 @@ elif menu == "📝 Reports":
     segments = api_get("/api/segments", {"user_id": user_id})
     
     if segments:
-        segment_options = {s["id"]: f"{s['name']} (ID: {s['id']})" for s in segments}
+        segment_options = {s["id"]: f"{get_seg_name(s)} (ID: {s['id']})" for s in segments}
+        
+        # Submit new report
+        st.subheader("📝 Submit New Report")
+        with st.form("new_report"):
+            segment_id = st.selectbox(
+                "Select Segment",
+                options=list(segment_options.keys()),
+                format_func=lambda x: segment_options[x]
+            )
         
         # Submit new report
         st.subheader("📝 Submit New Report")
@@ -356,8 +386,8 @@ elif menu == "📝 Reports":
             for report in reports[:10]:
                 with st.container():
                     col1, col2, col3 = st.columns([2, 1, 1])
-                    col1.write(f"**{report.get('comment', 'No comment')}**")
-                    col2.write(f"Status: {report.get('condition', 'N/A')}")
+                    col1.write(f"**{report.get('note', 'No notes')}**")
+                    col2.write(f"ID: {report.get('id', 'N/A')}")
                     col3.write(f"Confirmed: {'✅' if report.get('confirmed') else '❌'}")
                     
                     if not report.get("confirmed"):
@@ -365,6 +395,8 @@ elif menu == "📝 Reports":
                             api_post(f"/api/reports/{report['id']}/confirm", {"user_id": user_id})
                             st.rerun()
                     st.markdown("---")
+        else:
+            st.info("No reports for this segment yet")
 
 # ============== Trips ==============
 elif menu == "🚴 Trips":
@@ -375,19 +407,19 @@ elif menu == "🚴 Trips":
     with st.form("new_trip"):
         col1, col2 = st.columns(2)
         with col1:
-            from_lat = st.number_input("Start Latitude", value=45.478, format="%.4f")
-            from_lon = st.number_input("Start Longitude", value=9.227, format="%.4f")
+            trip_start_lat = st.number_input("Start Latitude", value=45.478, format="%.4f")
+            trip_start_lon = st.number_input("Start Longitude", value=9.227, format="%.4f")
         with col2:
-            to_lat = st.number_input("End Latitude", value=45.464, format="%.4f")
-            to_lon = st.number_input("End Longitude", value=9.190, format="%.4f")
+            trip_end_lat = st.number_input("End Latitude", value=45.464, format="%.4f")
+            trip_end_lon = st.number_input("End Longitude", value=9.190, format="%.4f")
         
         if st.form_submit_button("🚀 Create Trip"):
             result = api_post("/api/trips", {
                 "user_id": user_id,
-                "from_lat": from_lat,
-                "from_lon": from_lon,
-                "to_lat": to_lat,
-                "to_lon": to_lon
+                "start_lat": trip_start_lat,
+                "start_lon": trip_start_lon,
+                "end_lat": trip_end_lat,
+                "end_lon": trip_end_lon
             })
             if result:
                 st.success(f"✅ Trip #{result['id']} created!")
@@ -450,7 +482,7 @@ elif menu == "📡 Auto Detection":
     
     segments = api_get("/api/segments", {"user_id": user_id})
     if segments:
-        segment_options = {s["id"]: f"{s['name']} (ID: {s['id']})" for s in segments}
+        segment_options = {s["id"]: f"{get_seg_name(s)} (ID: {s['id']})" for s in segments}
         segment_id = st.selectbox(
             "Apply to Segment",
             options=list(segment_options.keys()),
