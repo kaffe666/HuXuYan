@@ -65,18 +65,104 @@ if "user" not in st.session_state:
     st.session_state.user = None
 if "language" not in st.session_state:
     st.session_state.language = "en"
+if "current_page" not in st.session_state:
+    st.session_state.current_page = "📊 Dashboard"
+
+# ============== Custom CSS ==============
+st.markdown("""
+<style>
+    /* Sidebar styling */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+    }
+    [data-testid="stSidebar"] * {
+        color: #ffffff !important;
+    }
+    
+    /* Navigation items - block style like GitHub */
+    .nav-item {
+        display: flex;
+        align-items: center;
+        padding: 12px 16px;
+        margin: 4px 0;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    .nav-item:hover {
+        background: rgba(255,255,255,0.15);
+        border-color: rgba(255,255,255,0.2);
+    }
+    .nav-item.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-color: transparent;
+    }
+    .nav-icon {
+        font-size: 1.2rem;
+        margin-right: 12px;
+        width: 24px;
+        text-align: center;
+    }
+    .nav-text {
+        font-size: 0.95rem;
+        font-weight: 500;
+    }
+    
+    /* User profile card */
+    .user-card {
+        background: rgba(255,255,255,0.1);
+        border-radius: 12px;
+        padding: 16px;
+        margin: 16px 0;
+        border: 1px solid rgba(255,255,255,0.15);
+    }
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        margin-right: 12px;
+    }
+    
+    /* Hide default radio buttons */
+    [data-testid="stSidebar"] .stRadio > div {
+        display: none;
+    }
+    
+    /* Main content improvements */
+    .main .block-container {
+        padding-top: 2rem;
+    }
+    
+    /* Cards */
+    .info-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        border: 1px solid #e0e0e0;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # ============== Sidebar ==============
-st.sidebar.title("🚲 BBP Road Monitor")
-
-# Language selector
-languages = {"en": "English", "zh": "中文", "it": "Italiano"}
-st.session_state.language = st.sidebar.selectbox(
-    "Language / 语言",
-    options=list(languages.keys()),
-    format_func=lambda x: languages[x],
-    index=0
-)
+with st.sidebar:
+    st.markdown("## 🚲 BBP Road Monitor")
+    
+    # Language selector
+    languages = {"en": "English", "zh": "中文", "it": "Italiano"}
+    st.session_state.language = st.selectbox(
+        "🌐 Language",
+        options=list(languages.keys()),
+        format_func=lambda x: languages[x],
+        label_visibility="collapsed"
+    )
 
 # ============== Login Section ==============
 if st.session_state.user is None:
@@ -106,18 +192,53 @@ if st.session_state.user is None:
 user = st.session_state.user
 user_id = user["id"]
 
-# Sidebar navigation
-st.sidebar.markdown(f"**👤 Logged in as:** {user['username']}")
-if st.sidebar.button("🚪 Logout"):
-    st.session_state.user = None
-    st.rerun()
+# Sidebar navigation with block-style design
+with st.sidebar:
+    # User profile card
+    st.markdown(f"""
+    <div class="user-card">
+        <div style="display: flex; align-items: center;">
+            <div class="user-avatar">👤</div>
+            <div>
+                <div style="font-weight: 600; font-size: 1rem;">{user['username']}</div>
+                <div style="font-size: 0.8rem; opacity: 0.7;">Logged in</div>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    if st.button("🚪 Logout", use_container_width=True):
+        st.session_state.user = None
+        st.rerun()
+    
+    st.markdown("---")
+    st.markdown("#### Navigation")
+    
+    # Block-style navigation
+    nav_items = [
+        ("📊", "Dashboard"),
+        ("🗺️", "Route Planning"),
+        ("📍", "Segments"),
+        ("📝", "Reports"),
+        ("🚴", "Trips"),
+        ("📡", "Auto Detection"),
+        ("⚙️", "Settings")
+    ]
+    
+    for icon, name in nav_items:
+        full_name = f"{icon} {name}"
+        is_active = st.session_state.current_page == full_name
+        
+        if st.button(
+            f"{icon}  {name}",
+            key=f"nav_{name}",
+            use_container_width=True,
+            type="primary" if is_active else "secondary"
+        ):
+            st.session_state.current_page = full_name
+            st.rerun()
 
-st.sidebar.markdown("---")
-menu = st.sidebar.radio(
-    "Navigation",
-    ["📊 Dashboard", "🗺️ Route Planning", "📍 Segments", "📝 Reports", 
-     "🚴 Trips", "📡 Auto Detection", "⚙️ Settings"]
-)
+menu = st.session_state.current_page
 
 # ============== Dashboard ==============
 if menu == "📊 Dashboard":
@@ -335,16 +456,7 @@ elif menu == "📝 Reports":
         
         # Submit new report
         st.subheader("📝 Submit New Report")
-        with st.form("new_report"):
-            segment_id = st.selectbox(
-                "Select Segment",
-                options=list(segment_options.keys()),
-                format_func=lambda x: segment_options[x]
-            )
-        
-        # Submit new report
-        st.subheader("📝 Submit New Report")
-        with st.form("new_report"):
+        with st.form("submit_report_form"):
             segment_id = st.selectbox(
                 "Select Segment",
                 options=list(segment_options.keys()),
@@ -358,13 +470,12 @@ elif menu == "📝 Reports":
                 format_func=lambda x: {"optimal": "✅ Optimal", "medium": "⚠️ Medium", "suboptimal": "❌ Poor"}.get(x, x)
             )
             
-            comment = st.text_area("Comment", placeholder="Describe the road condition...")
+            note = st.text_area("Notes", placeholder="Describe the road condition...")
             
             if st.form_submit_button("Submit Report"):
                 result = api_post(f"/api/segments/{segment_id}/reports", {
                     "user_id": user_id,
-                    "condition": condition,
-                    "comment": comment
+                    "note": note
                 })
                 if result:
                     st.success("✅ Report submitted successfully!")
