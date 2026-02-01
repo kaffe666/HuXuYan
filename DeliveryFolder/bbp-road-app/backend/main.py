@@ -712,11 +712,13 @@ USERS: Dict[int, Dict[str, Any]] = {}
 SEGMENTS: Dict[int, Dict[str, Any]] = {}
 REPORTS: Dict[int, Dict[str, Any]] = {}
 TRIPS: Dict[int, Dict[str, Any]] = {}
+SENSOR_READINGS: Dict[int, List[Dict[str, Any]]] = {}  # user_id -> list of readings
 
 _next_user_id = 1
 _next_segment_id = 1
 _next_report_id = 1
 _next_trip_id = 1
+_next_sensor_id = 1
 
 
 # ---- schemas ----
@@ -1211,6 +1213,74 @@ def delete_trip(trip_id: int):
         raise HTTPException(status_code=404, detail="trip_id not found")
     del TRIPS[trip_id]
     return {"ok": True, "deleted": trip_id}
+
+
+# ---- Sensor Readings ----
+class SensorReadingCreate(BaseModel):
+    """Model for creating sensor readings."""
+    acceleration_x: float
+    acceleration_y: float
+    acceleration_z: float
+    speed_mps: Optional[float] = 0.0
+    gps_accuracy_m: Optional[float] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+
+@app.get("/api/sensor-readings")
+def get_sensor_readings(user_id: int = Query(...)):
+    """Get sensor readings for a user."""
+    if user_id not in USERS:
+        raise HTTPException(status_code=404, detail="user_id not found")
+    
+    readings = SENSOR_READINGS.get(user_id, [])
+    return readings
+
+
+@app.post("/api/sensor-readings")
+def create_sensor_reading(user_id: int = Query(...), data: SensorReadingCreate = None):
+    """Record a new sensor reading."""
+    global _next_sensor_id
+    
+    if user_id not in USERS:
+        raise HTTPException(status_code=404, detail="user_id not found")
+    
+    if user_id not in SENSOR_READINGS:
+        SENSOR_READINGS[user_id] = []
+    
+    # Calculate severity based on acceleration
+    z_peak = abs(data.acceleration_z) if data else 0
+    if z_peak > 25:
+        severity = "severe"
+    elif z_peak > 15:
+        severity = "pothole"
+    elif z_peak > 8:
+        severity = "bump"
+    else:
+        severity = "smooth"
+    
+    reading = {
+        "id": _next_sensor_id,
+        "user_id": user_id,
+        "acceleration_x": data.acceleration_x if data else 0,
+        "acceleration_y": data.acceleration_y if data else 0,
+        "acceleration_z": data.acceleration_z if data else 0,
+        "speed_mps": data.speed_mps if data else 0,
+        "gps_accuracy_m": data.gps_accuracy_m if data else None,
+        "latitude": data.latitude if data else None,
+        "longitude": data.longitude if data else None,
+        "severity": severity,
+        "timestamp": now_iso()
+    }
+    
+    SENSOR_READINGS[user_id].append(reading)
+    _next_sensor_id += 1
+    
+    # Keep only last 1000 readings per user
+    if len(SENSOR_READINGS[user_id]) > 1000:
+        SENSOR_READINGS[user_id] = SENSOR_READINGS[user_id][-1000:]
+    
+    return reading
 
 
 # ---- Auto-detection & batch confirmation ----

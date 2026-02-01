@@ -8,8 +8,10 @@ import numpy as np
 import requests
 import folium
 from streamlit_folium import st_folium
+from folium.plugins import Draw
 from datetime import datetime
 import time
+import json
 
 # ============== Configuration ==============
 BACKEND_URL = "https://huxuyan.onrender.com"
@@ -30,7 +32,7 @@ def api_get(endpoint: str, params: dict = None):
         resp.raise_for_status()
         return resp.json()
     except requests.exceptions.ConnectionError:
-        st.error(f"❌ Cannot connect to backend at {BACKEND_URL}. Is it running?")
+        st.error(f"Cannot connect to backend at {BACKEND_URL}. Is it running?")
         return None
     except Exception as e:
         st.error(f"API Error: {e}")
@@ -43,7 +45,7 @@ def api_post(endpoint: str, json_data: dict = None, params: dict = None):
         resp.raise_for_status()
         return resp.json()
     except requests.exceptions.ConnectionError:
-        st.error(f"❌ Cannot connect to backend at {BACKEND_URL}. Is it running?")
+        st.error(f"Cannot connect to backend at {BACKEND_URL}. Is it running?")
         return None
     except Exception as e:
         st.error(f"API Error: {e}")
@@ -69,6 +71,38 @@ def api_patch(endpoint: str, json_data: dict = None):
         return resp.json()
     except:
         return None
+
+def geocode_place(query: str):
+    """Convert place name to coordinates using Nominatim."""
+    try:
+        url = "https://nominatim.openstreetmap.org/search"
+        params = {
+            "q": query,
+            "format": "json",
+            "limit": 5,
+            "addressdetails": 1
+        }
+        headers = {"User-Agent": "BBP-Road-App/1.0"}
+        resp = requests.get(url, params=params, headers=headers, timeout=10)
+        resp.raise_for_status()
+        results = resp.json()
+        return results
+    except:
+        return []
+
+def reverse_geocode(lat: float, lon: float):
+    """Convert coordinates to place name."""
+    try:
+        url = "https://nominatim.openstreetmap.org/reverse"
+        params = {"lat": lat, "lon": lon, "format": "json"}
+        headers = {"User-Agent": "BBP-Road-App/1.0"}
+        resp = requests.get(url, params=params, headers=headers, timeout=5)
+        if resp.status_code == 200:
+            data = resp.json()
+            return data.get("display_name", "")
+    except:
+        pass
+    return ""
 
 # ============== Translations ==============
 TRANSLATIONS = {
@@ -181,6 +215,21 @@ TRANSLATIONS = {
         "start_lon": "Start Longitude",
         "end_lat": "End Latitude",
         "end_lon": "End Longitude",
+        "search_origin": "Search origin location",
+        "search_destination": "Search destination",
+        "search_placeholder": "Enter city, address or place name...",
+        "search": "Search",
+        "click_map_hint": "Click on the map to set location, or drag the markers",
+        "origin_marker": "Origin (drag to move)",
+        "dest_marker": "Destination (drag to move)",
+        "no_results": "No results found",
+        "select_location": "Select location",
+        "from_location": "From",
+        "to_location": "To",
+        "sensor_history": "Sensor History",
+        "no_sensor_data": "No sensor data recorded yet",
+        "recording_time": "Recording Time",
+        "acceleration": "Acceleration",
     },
     "zh": {
         "app_title": "BBP 道路监测",
@@ -291,6 +340,21 @@ TRANSLATIONS = {
         "start_lon": "起点经度",
         "end_lat": "终点纬度",
         "end_lon": "终点经度",
+        "search_origin": "搜索起点",
+        "search_destination": "搜索终点",
+        "search_placeholder": "输入城市、地址或地名...",
+        "search": "搜索",
+        "click_map_hint": "点击地图设置位置，或拖动标记",
+        "origin_marker": "起点（拖动移动）",
+        "dest_marker": "终点（拖动移动）",
+        "no_results": "未找到结果",
+        "select_location": "选择位置",
+        "from_location": "从",
+        "to_location": "到",
+        "sensor_history": "传感器历史",
+        "no_sensor_data": "暂无传感器数据",
+        "recording_time": "记录时间",
+        "acceleration": "加速度",
     },
     "it": {
         "app_title": "BBP Monitor Stradale",
@@ -401,6 +465,21 @@ TRANSLATIONS = {
         "start_lon": "Longitudine Inizio",
         "end_lat": "Latitudine Fine",
         "end_lon": "Longitudine Fine",
+        "search_origin": "Cerca origine",
+        "search_destination": "Cerca destinazione",
+        "search_placeholder": "Inserisci citta, indirizzo o luogo...",
+        "search": "Cerca",
+        "click_map_hint": "Clicca sulla mappa o trascina i marcatori",
+        "origin_marker": "Origine (trascina)",
+        "dest_marker": "Destinazione (trascina)",
+        "no_results": "Nessun risultato",
+        "select_location": "Seleziona posizione",
+        "from_location": "Da",
+        "to_location": "A",
+        "sensor_history": "Cronologia Sensori",
+        "no_sensor_data": "Nessun dato sensore",
+        "recording_time": "Ora Registrazione",
+        "acceleration": "Accelerazione",
     }
 }
 
@@ -422,6 +501,16 @@ if "gps_lat" not in st.session_state:
     st.session_state.gps_lat = 45.4642
 if "gps_lon" not in st.session_state:
     st.session_state.gps_lon = 9.1900
+if "origin_lat" not in st.session_state:
+    st.session_state.origin_lat = 45.4781
+if "origin_lon" not in st.session_state:
+    st.session_state.origin_lon = 9.2275
+if "dest_lat" not in st.session_state:
+    st.session_state.dest_lat = 45.4642
+if "dest_lon" not in st.session_state:
+    st.session_state.dest_lon = 9.1900
+if "sensor_readings" not in st.session_state:
+    st.session_state.sensor_readings = []
 
 # ============== Dynamic CSS - Gemini Style ==============
 if st.session_state.dark_mode:
@@ -615,16 +704,102 @@ elif menu == "Route Planning":
     st.title(t("route_planning"))
     st.markdown(t("plan_route"))
     
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader(t("origin"))
-        from_lat = st.number_input(t("latitude"), value=45.4781, key="from_lat", format="%.4f")
-        from_lon = st.number_input(t("longitude"), value=9.2275, key="from_lon", format="%.4f")
+    # Search boxes for origin and destination
+    col_search1, col_search2 = st.columns(2)
     
-    with col2:
+    with col_search1:
+        st.subheader(t("origin"))
+        origin_query = st.text_input(t("search_origin"), placeholder=t("search_placeholder"), key="origin_search")
+        if st.button(t("search"), key="search_origin_btn"):
+            if origin_query:
+                results = geocode_place(origin_query)
+                if results:
+                    st.session_state.origin_results = results
+                else:
+                    st.warning(t("no_results"))
+        
+        if "origin_results" in st.session_state and st.session_state.origin_results:
+            options = {i: r.get("display_name", "")[:60] for i, r in enumerate(st.session_state.origin_results)}
+            selected = st.selectbox(t("select_location"), options.keys(), format_func=lambda x: options[x], key="origin_select")
+            if selected is not None:
+                r = st.session_state.origin_results[selected]
+                st.session_state.origin_lat = float(r["lat"])
+                st.session_state.origin_lon = float(r["lon"])
+        
+        st.caption(f"{t('latitude')}: {st.session_state.origin_lat:.4f}, {t('longitude')}: {st.session_state.origin_lon:.4f}")
+    
+    with col_search2:
         st.subheader(t("destination"))
-        to_lat = st.number_input(t("latitude"), value=45.4642, key="to_lat", format="%.4f")
-        to_lon = st.number_input(t("longitude"), value=9.1900, key="to_lon", format="%.4f")
+        dest_query = st.text_input(t("search_destination"), placeholder=t("search_placeholder"), key="dest_search")
+        if st.button(t("search"), key="search_dest_btn"):
+            if dest_query:
+                results = geocode_place(dest_query)
+                if results:
+                    st.session_state.dest_results = results
+                else:
+                    st.warning(t("no_results"))
+        
+        if "dest_results" in st.session_state and st.session_state.dest_results:
+            options = {i: r.get("display_name", "")[:60] for i, r in enumerate(st.session_state.dest_results)}
+            selected = st.selectbox(t("select_location"), options.keys(), format_func=lambda x: options[x], key="dest_select")
+            if selected is not None:
+                r = st.session_state.dest_results[selected]
+                st.session_state.dest_lat = float(r["lat"])
+                st.session_state.dest_lon = float(r["lon"])
+        
+        st.caption(f"{t('latitude')}: {st.session_state.dest_lat:.4f}, {t('longitude')}: {st.session_state.dest_lon:.4f}")
+    
+    st.info(t("click_map_hint"))
+    
+    # Interactive map with draggable markers
+    center_lat = (st.session_state.origin_lat + st.session_state.dest_lat) / 2
+    center_lon = (st.session_state.origin_lon + st.session_state.dest_lon) / 2
+    
+    m = folium.Map(location=[center_lat, center_lon], zoom_start=13)
+    
+    # Add draggable markers
+    folium.Marker(
+        [st.session_state.origin_lat, st.session_state.origin_lon],
+        popup=t("origin_marker"),
+        icon=folium.Icon(color="green", icon="play"),
+        draggable=True
+    ).add_to(m)
+    
+    folium.Marker(
+        [st.session_state.dest_lat, st.session_state.dest_lon],
+        popup=t("dest_marker"),
+        icon=folium.Icon(color="red", icon="stop"),
+        draggable=True
+    ).add_to(m)
+    
+    # Draw line between points
+    folium.PolyLine(
+        [[st.session_state.origin_lat, st.session_state.origin_lon],
+         [st.session_state.dest_lat, st.session_state.dest_lon]],
+        color="blue", weight=2, opacity=0.5, dash_array="5"
+    ).add_to(m)
+    
+    map_data = st_folium(m, width=700, height=400, returned_objects=["last_clicked"])
+    
+    # Handle map clicks to update markers
+    if map_data and map_data.get("last_clicked"):
+        clicked = map_data["last_clicked"]
+        click_lat = clicked["lat"]
+        click_lon = clicked["lng"]
+        
+        col_btn1, col_btn2 = st.columns(2)
+        with col_btn1:
+            if st.button(f"{t('origin')}: {click_lat:.4f}, {click_lon:.4f}", key="set_origin"):
+                st.session_state.origin_lat = click_lat
+                st.session_state.origin_lon = click_lon
+                st.rerun()
+        with col_btn2:
+            if st.button(f"{t('destination')}: {click_lat:.4f}, {click_lon:.4f}", key="set_dest"):
+                st.session_state.dest_lat = click_lat
+                st.session_state.dest_lon = click_lon
+                st.rerun()
+    
+    st.markdown("---")
     
     mode = st.selectbox(
         t("optimization_mode"),
@@ -633,6 +808,11 @@ elif menu == "Route Planning":
     )
     
     if st.button(t("find_routes"), use_container_width=True):
+        from_lat = st.session_state.origin_lat
+        from_lon = st.session_state.origin_lon
+        to_lat = st.session_state.dest_lat
+        to_lon = st.session_state.dest_lon
+        
         with st.spinner("..."):
             routes = api_post("/api/path/search", {
                 "origin": {"lat": from_lat, "lon": from_lon},
@@ -648,9 +828,9 @@ elif menu == "Route Planning":
                 if routes.get("cycling_recommendation"):
                     st.write(routes['cycling_recommendation'])
                 
-                m = folium.Map(location=[(from_lat + to_lat)/2, (from_lon + to_lon)/2], zoom_start=14)
-                folium.Marker([from_lat, from_lon], popup=t("origin"), icon=folium.Icon(color="green")).add_to(m)
-                folium.Marker([to_lat, to_lon], popup=t("destination"), icon=folium.Icon(color="red")).add_to(m)
+                route_map = folium.Map(location=[(from_lat + to_lat)/2, (from_lon + to_lon)/2], zoom_start=14)
+                folium.Marker([from_lat, from_lon], popup=t("origin"), icon=folium.Icon(color="green")).add_to(route_map)
+                folium.Marker([to_lat, to_lon], popup=t("destination"), icon=folium.Icon(color="red")).add_to(route_map)
                 
                 colors = ["blue", "purple", "orange", "darkgreen", "darkred"]
                 for i, route in enumerate(routes["routes"][:5]):
@@ -664,9 +844,9 @@ elif menu == "Route Planning":
                             weight=4 if i == 0 else 3,
                             opacity=0.8 if i == 0 else 0.5,
                             popup=f"Route {route.get('route_id', i+1)}"
-                        ).add_to(m)
+                        ).add_to(route_map)
                 
-                st_folium(m, width=700, height=500, returned_objects=[])
+                st_folium(route_map, width=700, height=500, returned_objects=[])
                 
                 st.subheader(t("route_details"))
                 for i, route in enumerate(routes["routes"][:5]):
@@ -841,18 +1021,18 @@ elif menu == "Trips":
     with col1:
         st.subheader(t("start_trip"))
         with st.form("new_trip"):
-            trip_start_lat = st.number_input(t("start_lat"), value=45.478, format="%.4f")
-            trip_start_lon = st.number_input(t("start_lon"), value=9.227, format="%.4f")
-            trip_end_lat = st.number_input(t("end_lat"), value=45.464, format="%.4f")
-            trip_end_lon = st.number_input(t("end_lon"), value=9.190, format="%.4f")
+            trip_from_lat = st.number_input(t("start_lat"), value=45.478, format="%.4f")
+            trip_from_lon = st.number_input(t("start_lon"), value=9.227, format="%.4f")
+            trip_to_lat = st.number_input(t("end_lat"), value=45.464, format="%.4f")
+            trip_to_lon = st.number_input(t("end_lon"), value=9.190, format="%.4f")
             
             if st.form_submit_button(t("create_trip")):
                 result = api_post("/api/trips", {
                     "user_id": user_id,
-                    "start_lat": trip_start_lat,
-                    "start_lon": trip_start_lon,
-                    "end_lat": trip_end_lat,
-                    "end_lon": trip_end_lon
+                    "from_lat": trip_from_lat,
+                    "from_lon": trip_from_lon,
+                    "to_lat": trip_to_lat,
+                    "to_lon": trip_to_lon
                 })
                 if result:
                     st.success(t("trip_created"))
@@ -894,7 +1074,7 @@ elif menu == "Auto Detection":
         if (navigator.geolocation) {
             navigator.geolocation.watchPosition(
                 function(p) {
-                    document.getElementById('status').innerHTML = '<span style="color:green;">OK</span>';
+                    document.getElementById('status').innerHTML = '<span style="color:green;">GPS Active</span>';
                     document.getElementById('data').style.display = 'block';
                     document.getElementById('lat').textContent = p.coords.latitude.toFixed(6);
                     document.getElementById('lon').textContent = p.coords.longitude.toFixed(6);
@@ -912,27 +1092,38 @@ elif menu == "Auto Detection":
     st.markdown("---")
     st.subheader(t("sensor_data"))
     
-    col1, col2 = st.columns(2)
-    with col1:
-        use_sim = st.checkbox(t("simulate_event"), value=True)
-    with col2:
-        if use_sim:
-            severity = st.selectbox(t("simulate_event"), [t("normal"), t("bump"), t("pothole"), t("severe")], key="sev_sel", label_visibility="collapsed")
-            sev_map = {t("normal"): 1, t("bump"): 3, t("pothole"): 5, t("severe"): 8}
-            mult = sev_map.get(severity, 1)
-        else:
-            mult = 1
+    # Fetch recorded sensor data from backend
+    sensor_history = api_get("/api/sensor-readings", {"user_id": user_id})
     
-    np.random.seed(int(time.time()) % 1000)
-    base = np.random.randn(50, 3) * 0.5
-    if use_sim and mult > 1:
-        for pos in np.random.choice(50, size=3, replace=False):
-            base[pos] = np.random.randn(3) * mult
-    
-    sensor_data = pd.DataFrame(base, columns=['Accel_X', 'Accel_Y', 'Accel_Z'])
-    st.line_chart(sensor_data)
-    
-    max_accel = sensor_data.abs().max().max()
+    if sensor_history and len(sensor_history) > 0:
+        # Use real recorded data
+        recent_readings = sensor_history[-50:] if len(sensor_history) > 50 else sensor_history
+        sensor_data = pd.DataFrame([{
+            'Accel_X': r.get('acceleration_x', 0),
+            'Accel_Y': r.get('acceleration_y', 0),
+            'Accel_Z': r.get('acceleration_z', 0)
+        } for r in recent_readings])
+        
+        st.line_chart(sensor_data)
+        max_accel = sensor_data.abs().max().max()
+        
+        # Show history table
+        with st.expander(t("sensor_history")):
+            history_df = pd.DataFrame([{
+                t("recording_time"): r.get('timestamp', 'N/A')[:19] if r.get('timestamp') else 'N/A',
+                'X': f"{r.get('acceleration_x', 0):.2f}",
+                'Y': f"{r.get('acceleration_y', 0):.2f}",
+                'Z': f"{r.get('acceleration_z', 0):.2f}",
+                t("detection_result"): r.get('severity', '-')
+            } for r in reversed(recent_readings[-20:])])
+            st.dataframe(history_df, use_container_width=True)
+    else:
+        st.info(t("no_sensor_data"))
+        # Generate sample data for demo if no recorded data
+        np.random.seed(int(time.time()) % 1000)
+        sensor_data = pd.DataFrame(np.random.randn(50, 3) * 0.5, columns=['Accel_X', 'Accel_Y', 'Accel_Z'])
+        st.line_chart(sensor_data)
+        max_accel = sensor_data.abs().max().max()
     
     col1, col2 = st.columns(2)
     with col1:
@@ -961,9 +1152,9 @@ elif menu == "Auto Detection":
         
         if st.button(t("submit_detection"), key="submit_det_btn"):
             reading = {
-                "acceleration_x": float(sensor_data["Accel_X"].iloc[-1]),
-                "acceleration_y": float(sensor_data["Accel_Y"].iloc[-1]),
-                "acceleration_z": float(sensor_data["Accel_Z"].iloc[-1]),
+                "acceleration_x": float(sensor_data["Accel_X"].iloc[-1]) if len(sensor_data) > 0 else 0,
+                "acceleration_y": float(sensor_data["Accel_Y"].iloc[-1]) if len(sensor_data) > 0 else 0,
+                "acceleration_z": float(sensor_data["Accel_Z"].iloc[-1]) if len(sensor_data) > 0 else 0,
                 "speed_mps": 5.0,
                 "gps_accuracy_m": 5.0
             }
@@ -1016,7 +1207,25 @@ elif menu == "Settings":
     
     st.markdown("---")
     st.subheader(t("user_info"))
-    st.json(user)
+    
+    # Display user info in a nice table format
+    info_col1, info_col2 = st.columns(2)
+    with info_col1:
+        st.markdown(f"**{t('user_id')}**")
+        st.write(user.get('id', 'N/A'))
+        
+        st.markdown(f"**{t('username')}**")
+        st.write(user.get('username', 'N/A'))
+    
+    with info_col2:
+        st.markdown(f"**{t('member_since')}**")
+        created = user.get('created_at', 'N/A')
+        if created and len(created) >= 10:
+            created = created[:10]
+        st.write(created)
+        
+        st.markdown(f"**{t('account_status')}**")
+        st.write(t("active"))
 
 # ============== Footer ==============
 st.sidebar.markdown("---")
