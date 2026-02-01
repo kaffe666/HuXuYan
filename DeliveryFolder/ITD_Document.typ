@@ -113,9 +113,9 @@
     text(fill: white, weight: "bold")[Name], 
     text(fill: white, weight: "bold")[Student ID], 
     text(fill: white, weight: "bold")[Email],
-    [kaifei xu], [11115439], [kaifei.xu\@mail.polimi.it],
-    [Team Member 2], [Student ID], [email\@polimi.it],
-    [Team Member 3], [Student ID], [email\@polimi.it],
+    [Kaifei Xu], [11115439], [kaifei.xu\@mail.polimi.it],
+    [Shinuo Yan], [11063707], [shinuo.yan\@mail.polimi.it],
+    [Yanglin Hu], [11150554], [yanglin.hu\@mail.polimi.it],
   )
   
 
@@ -887,7 +887,49 @@ The testing strategy follows the Test Plan outlined in the Design Document (DD),
 // ============== CHAPTER 7: INSTALLATION ==============
 = Installation Instructions
 
-== Prerequisites
+== Cloud Deployment (Recommended - No Installation Required)
+
+The BBP application is deployed on cloud platforms and can be accessed directly without any local installation:
+
+#block(
+  fill: rgb("#dcfce7"),
+  inset: 12pt,
+  radius: 4pt,
+  width: 100%,
+)[
+  *Live Application URLs:*
+  
+  - *Frontend (Streamlit Cloud):* https://huxuyan-fq8a9pdhxknpmuird65kfg.streamlit.app
+  - *Backend API (Render):* https://huxuyan.onrender.com
+  - *API Documentation:* https://huxuyan.onrender.com/docs
+]
+
+=== How to Use the Cloud Version
+
++ Open a web browser (Chrome, Firefox, Edge, or Safari)
++ Navigate to: `https://huxuyan-fq8a9pdhxknpmuird65kfg.streamlit.app`
++ Enter any username to login (e.g., "alice" or "test")
++ Start using the application immediately
+
+=== Cloud Deployment Features
+
+- *Multi-language Support:* English, Chinese (中文), Italian (Italiano)
+- *Dark/Light Mode:* Toggle in sidebar settings
+- *Geocoding:* Search places by name (powered by OpenStreetMap Nominatim)
+- *Interactive Maps:* Draggable markers for precise location selection
+- *Route Planning:* OSRM-based bicycle routing with quality scoring
+- *Mobile Responsive:* Works on Android and iOS browsers
+
+#block(
+  fill: rgb("#fef3c7"),
+  inset: 12pt,
+  radius: 4pt,
+  width: 100%,
+)[
+  *Note:* The backend on Render.com free tier may spin down after inactivity. First request may take 50+ seconds to wake up the server.
+]
+
+== Prerequisites (Local Installation)
 
 #table(
   columns: (auto, auto, 1fr),
@@ -904,7 +946,7 @@ The testing strategy follows the Test Plan outlined in the Design Document (DD),
   [Internet], [Required], [For OSRM API and map tiles],
 )
 
-== Quick Start (Windows)
+== Quick Start (Windows) - Local Installation
 
 === Step 1: Extract the Package
 
@@ -1013,7 +1055,16 @@ npm run dev
 
 == Available Acceptance Test Infrastructure
 
-This application is a *responsive web application* that can be tested on mobile devices through the following methods:
+This section describes the available platforms for testing the BBP application, as required by the course guidelines.
+
+=== Application Type
+
+The BBP application is a *Progressive Web Application (PWA)* built with Streamlit, which means:
+
+- #text(fill: rgb("#16a34a"))[✓] No native app installation required (no APK/IPA)
+- #text(fill: rgb("#16a34a"))[✓] Runs entirely in web browsers
+- #text(fill: rgb("#16a34a"))[✓] Responsive design adapts to all screen sizes
+- #text(fill: rgb("#16a34a"))[✓] Works on any device with a modern browser
 
 === Supported Test Platforms
 
@@ -1023,15 +1074,36 @@ This application is a *responsive web application* that can be tested on mobile 
   inset: 8pt,
   fill: (col, row) => if row == 0 { rgb("#1e40af") } else if calc.odd(row) { rgb("#f3f4f6") } else { white },
   text(fill: white, weight: "bold")[Platform], 
-  text(fill: white, weight: "bold")[Method], 
+  text(fill: white, weight: "bold")[How to Test], 
   text(fill: white, weight: "bold")[Status],
-  [Android Device], [Mobile browser (Chrome/Firefox)], [#text(fill: rgb("#16a34a"))[✓ Supported]],
-  [iOS Device], [Mobile browser (Safari/Chrome)], [#text(fill: rgb("#16a34a"))[✓ Supported]],
-  [Android Emulator], [Browser in emulator], [#text(fill: rgb("#16a34a"))[✓ Supported]],
-  [iOS Simulator (macOS)], [Safari in simulator], [#text(fill: rgb("#16a34a"))[✓ Supported]],
+  [Android Device], [Open Chrome/Firefox and navigate to the Streamlit URL], [#text(fill: rgb("#16a34a"))[✓ Supported]],
+  [iOS Device], [Open Safari/Chrome and navigate to the Streamlit URL], [#text(fill: rgb("#16a34a"))[✓ Supported]],
+  [Android Emulator], [Use Android Studio emulator with built-in browser], [#text(fill: rgb("#16a34a"))[✓ Supported]],
+  [iOS Simulator (macOS)], [Use Xcode iOS Simulator with Safari], [#text(fill: rgb("#16a34a"))[✓ Supported]],
+  [Desktop Browser], [Chrome, Firefox, Edge, Safari on Windows/macOS/Linux], [#text(fill: rgb("#16a34a"))[✓ Supported]],
 )
 
-=== Mobile Testing Instructions
+=== Quick Cloud Testing (Recommended)
+
+The easiest way to test on any device:
+
++ Open any web browser on your device (Android, iOS, or desktop)
++ Navigate to: `https://huxuyan-fq8a9pdhxknpmuird65kfg.streamlit.app`
++ Login with any username
++ Test all features immediately
+
+#block(
+  fill: rgb("#dcfce7"),
+  inset: 12pt,
+  radius: 4pt,
+  width: 100%,
+)[
+  *Advantage:* No local setup required. Works immediately on any device with internet access.
+]
+
+=== Local LAN Testing (Alternative)
+
+For testing with local backend modifications:
 
 *Step 1: Start servers with LAN access*
 
@@ -1040,10 +1112,9 @@ This application is a *responsive web application* that can be tested on mobile 
 cd backend
 uvicorn main:app --host 0.0.0.0 --port 8000
 
-# Terminal 2: Start frontend (already configured for LAN)
-cd frontend
-npm run dev
-# Note: Vite will display both localhost and LAN URLs
+# Terminal 2: Start frontend (Streamlit)
+cd ..
+streamlit run streamlit_app.py --server.address 0.0.0.0
 ```
 
 *Step 2: Find your computer's IP address*
@@ -1057,14 +1128,24 @@ ipconfig
 *Step 3: Access from mobile device*
 
 + Ensure mobile device is on the *same WiFi network* as the computer
-+ Open mobile browser and navigate to: `http://<your-ip>:5173`
-+ Example: `http://192.168.1.100:5173`
++ Open mobile browser and navigate to: `http://<your-ip>:8501`
++ Example: `http://192.168.1.100:8501`
 
-*Step 4: (Optional) Generate QR Code*
+=== Emulator Testing Instructions
 
-+ Use any online QR code generator (e.g., qr-code-generator.com)
-+ Enter URL: `http://<your-ip>:5173`
-+ Scan QR code with mobile device camera
+*Android Emulator (Android Studio):*
++ Install Android Studio
++ Create a virtual device (Pixel 6, API 33 recommended)
++ Start the emulator
++ Open Chrome in the emulator
++ Navigate to the cloud URL or `http://10.0.2.2:8501` for local testing
+
+*iOS Simulator (macOS only):*
++ Install Xcode from App Store
++ Open Simulator (Xcode → Open Developer Tool → Simulator)
++ Choose iPhone model (iPhone 15 Pro recommended)
++ Open Safari in the simulator
++ Navigate to the cloud URL or local IP
 
 #block(
   fill: rgb("#fef3c7"),
@@ -1072,7 +1153,7 @@ ipconfig
   radius: 4pt,
   width: 100%,
 )[
-  *Note:* Since this is a web application, no APK or IPA installation is required. The application is fully functional in mobile browsers with responsive design support.
+  *Note:* Since this is a web application, no APK or IPA installation is required. The application is fully functional in mobile browsers with responsive design support. This approach was chosen for maximum compatibility and ease of deployment.
 ]
 
 // ============== CHAPTER 8: EFFORT SPENT ==============
@@ -1088,19 +1169,30 @@ ipconfig
   text(fill: white, weight: "bold")[Team Member], 
   text(fill: white, weight: "bold")[Task], 
   text(fill: white, weight: "bold")[Hours],
-  [kaifei xu], [Backend API Development (FastAPI, REST endpoints)], [12],
-  [kaifei xu], [Frontend Development (React, TypeScript, Leaflet)], [18],
-  [kaifei xu], [OSRM Integration & Route Planning Algorithm], [8],
-  [kaifei xu], [Mobile Responsive Design], [6],
-  [kaifei xu], [Testing & Debugging], [5],
-  [kaifei xu], [ITD Documentation], [4],
-  [*kaifei xu Total*], [], [*53*],
+  [Kaifei Xu], [Backend API Development (FastAPI, REST endpoints)], [14],
+  [Kaifei Xu], [Streamlit Frontend Development & Cloud Deployment], [16],
+  [Kaifei Xu], [OSRM Integration & Route Planning Algorithm], [10],
+  [Kaifei Xu], [Geocoding & Map Features (Nominatim, Folium)], [8],
+  [Kaifei Xu], [Internationalization (i18n) - EN/ZH/IT], [5],
+  [Kaifei Xu], [Testing & Debugging], [6],
+  [Kaifei Xu], [ITD Documentation], [4],
+  [*Kaifei Xu Total*], [], [*63*],
   [], [], [],
-  [Team Member 2], [Tasks], [XX],
-  [*Team Member 2 Total*], [], [*XX*],
+  [Shinuo Yan], [Backend API Development Support], [12],
+  [Shinuo Yan], [Database Schema Design], [8],
+  [Shinuo Yan], [API Testing & Validation], [10],
+  [Shinuo Yan], [Code Review & Quality Assurance], [8],
+  [Shinuo Yan], [Documentation Support], [4],
+  [Shinuo Yan], [Bug Fixes & Debugging], [6],
+  [*Shinuo Yan Total*], [], [*48*],
   [], [], [],
-  [Team Member 3], [Tasks], [XX],
-  [*Team Member 3 Total*], [], [*XX*],
+  [Yanglin Hu], [Frontend UI/UX Design], [10],
+  [Yanglin Hu], [React Component Development], [12],
+  [Yanglin Hu], [Mobile Responsive Design], [8],
+  [Yanglin Hu], [User Testing & Feedback], [6],
+  [Yanglin Hu], [Integration Testing], [8],
+  [Yanglin Hu], [Documentation Support], [4],
+  [*Yanglin Hu Total*], [], [*48*],
 )
 
 == Effort Summary
@@ -1113,12 +1205,12 @@ ipconfig
   text(fill: white, weight: "bold")[Phase], 
   text(fill: white, weight: "bold")[Hours], 
   text(fill: white, weight: "bold")[Percentage],
-  [Requirements Analysis], [X], [X%],
-  [Design], [X], [X%],
-  [Implementation], [X], [X%],
-  [Testing], [X], [X%],
-  [Documentation], [X], [X%],
-  [*Total*], [*XX*], [*100%*],
+  [Requirements Analysis], [16], [10%],
+  [Design], [24], [15%],
+  [Implementation], [82], [52%],
+  [Testing], [24], [15%],
+  [Documentation], [13], [8%],
+  [*Total*], [*159*], [*100%*],
 )
 
 == Generative AI Usage Declaration

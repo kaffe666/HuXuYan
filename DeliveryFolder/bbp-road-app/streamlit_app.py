@@ -580,6 +580,41 @@ if st.session_state.dark_mode:
         .info-table { width: 100%; border-collapse: collapse; }
         .info-table td { padding: 12px 0; border-bottom: 1px solid #3c4043; color: #e3e3e3; }
         .info-table td:last-child { text-align: right; }
+        /* Sidebar toggle button - make more visible */
+        [data-testid="stSidebarCollapsedControl"], [data-testid="collapsedControl"] {
+            background-color: #3c4043 !important;
+            border-radius: 8px !important;
+        }
+        [data-testid="stSidebarCollapsedControl"] svg, [data-testid="collapsedControl"] svg,
+        button[kind="header"] svg, .stApp header button svg {
+            stroke: #ffffff !important;
+            fill: #ffffff !important;
+            width: 24px !important;
+            height: 24px !important;
+        }
+        /* Header buttons (Fork, Star, etc.) */
+        .stApp header, [data-testid="stHeader"] {
+            background-color: #1e1f20 !important;
+        }
+        .stApp header button, [data-testid="stHeader"] button,
+        [data-testid="stToolbar"] button {
+            background-color: #3c4043 !important;
+            color: #ffffff !important;
+            border: 1px solid #5f6368 !important;
+            border-radius: 6px !important;
+        }
+        .stApp header button:hover, [data-testid="stHeader"] button:hover,
+        [data-testid="stToolbar"] button:hover {
+            background-color: #5f6368 !important;
+        }
+        /* Toolbar/menu area */
+        [data-testid="stToolbar"] {
+            background-color: #1e1f20 !important;
+        }
+        [data-testid="stToolbar"] svg {
+            stroke: #ffffff !important;
+            fill: #ffffff !important;
+        }
     </style>
     """, unsafe_allow_html=True)
 else:
