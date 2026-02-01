@@ -580,12 +580,24 @@ if st.session_state.dark_mode:
         .info-table { width: 100%; border-collapse: collapse; }
         .info-table td { padding: 12px 0; border-bottom: 1px solid #3c4043; color: #e3e3e3; }
         .info-table td:last-child { text-align: right; }
-        /* Sidebar toggle button - make more visible */
-        [data-testid="stSidebarCollapsedControl"], [data-testid="collapsedControl"] {
-            background-color: #3c4043 !important;
+        /* Sidebar toggle button - make VERY visible with bright color */
+        [data-testid="stSidebarCollapsedControl"], [data-testid="collapsedControl"],
+        [data-testid="stSidebarNavCollapseIcon"], button[aria-label="Collapse sidebar"],
+        button[aria-label="Expand sidebar"] {
+            background-color: #8ab4f8 !important;
             border-radius: 8px !important;
+            padding: 8px !important;
+            min-width: 40px !important;
+            min-height: 40px !important;
         }
         [data-testid="stSidebarCollapsedControl"] svg, [data-testid="collapsedControl"] svg,
+        [data-testid="stSidebarNavCollapseIcon"] svg,
+        button[aria-label="Collapse sidebar"] svg, button[aria-label="Expand sidebar"] svg {
+            stroke: #1a1a1a !important;
+            fill: #1a1a1a !important;
+            width: 28px !important;
+            height: 28px !important;
+        }
         button[kind="header"] svg, .stApp header button svg {
             stroke: #ffffff !important;
             fill: #ffffff !important;
@@ -598,14 +610,15 @@ if st.session_state.dark_mode:
         }
         .stApp header button, [data-testid="stHeader"] button,
         [data-testid="stToolbar"] button {
-            background-color: #3c4043 !important;
+            background-color: #5f6368 !important;
             color: #ffffff !important;
-            border: 1px solid #5f6368 !important;
+            border: 1px solid #8ab4f8 !important;
             border-radius: 6px !important;
         }
         .stApp header button:hover, [data-testid="stHeader"] button:hover,
         [data-testid="stToolbar"] button:hover {
-            background-color: #5f6368 !important;
+            background-color: #8ab4f8 !important;
+            color: #1a1a1a !important;
         }
         /* Toolbar/menu area */
         [data-testid="stToolbar"] {
