@@ -1,6 +1,6 @@
 """
 BBP Road Application - Streamlit Frontend
-This connects to the FastAPI backend for full functionality.
+Professional UI with full i18n support - Gemini Style
 """
 import streamlit as st
 import pandas as pd
@@ -9,14 +9,15 @@ import requests
 import folium
 from streamlit_folium import st_folium
 from datetime import datetime
+import time
 
 # ============== Configuration ==============
 BACKEND_URL = "https://huxuyan.onrender.com"
 
 # ============== Page Configuration ==============
 st.set_page_config(
-    page_title="🚲 BBP Road Monitor",
-    page_icon="🚲",
+    page_title="BBP Road Monitor",
+    page_icon="B",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -72,6 +73,7 @@ def api_patch(endpoint: str, json_data: dict = None):
 # ============== Translations ==============
 TRANSLATIONS = {
     "en": {
+        "app_title": "BBP Road Monitor",
         "dashboard": "Dashboard",
         "route_planning": "Route Planning",
         "segments": "Segments",
@@ -79,7 +81,7 @@ TRANSLATIONS = {
         "trips": "Trips",
         "auto_detection": "Auto Detection",
         "settings": "Settings",
-        "logout": "Logout",
+        "logout": "Sign Out",
         "logged_in": "Logged in",
         "find_routes": "Find Routes",
         "origin": "Origin",
@@ -90,18 +92,108 @@ TRANSLATIONS = {
         "language": "Language",
         "dark_mode": "Dark Mode",
         "notifications": "Notifications",
+        "navigation": "NAVIGATION",
+        "total_segments": "Total Segments",
+        "total_reports": "Total Reports", 
+        "total_trips": "Total Trips",
+        "active_users": "Active Users",
+        "current_weather": "Current Weather",
+        "condition": "Condition",
+        "temperature": "Temperature",
+        "wind": "Wind Speed",
+        "rain_chance": "Rain Chance",
+        "great_cycling": "Great conditions for cycling!",
+        "check_weather": "Check weather conditions before cycling",
+        "plan_route": "Plan your cycling route with real road geometry",
+        "optimization_mode": "Optimization Mode",
+        "safety_first": "Safety First",
+        "shortest": "Shortest Distance",
+        "balanced": "Balanced",
+        "route_details": "Route Details",
+        "distance": "Distance",
+        "duration": "Duration",
+        "road_quality": "Road Quality",
+        "tags": "Tags",
+        "road_segments": "Road Segments",
+        "segment_list": "Segment List",
+        "add_segment": "Add New Segment",
+        "road_name": "Road Name",
+        "status": "Status",
+        "obstacle": "Obstacle",
+        "create_segment": "Create Segment",
+        "segment_created": "Segment created!",
+        "no_segments": "No segments found",
+        "optimal": "Optimal",
+        "medium": "Medium",
+        "suboptimal": "Suboptimal",
+        "maintenance": "Maintenance",
+        "road_reports": "Road Condition Reports",
+        "submit_report": "Submit New Report",
+        "select_segment": "Select Segment",
+        "road_condition": "Road Condition",
+        "notes": "Notes",
+        "submit": "Submit",
+        "report_submitted": "Report submitted!",
+        "recent_reports": "Recent Reports",
+        "no_reports": "No reports yet",
+        "confirmed": "Confirmed",
+        "confirm_report": "Confirm",
+        "trip_management": "Trip Management",
+        "start_trip": "Start New Trip",
+        "create_trip": "Create Trip",
+        "trip_created": "Trip created!",
+        "your_trips": "Your Trips",
+        "trip": "Trip",
+        "auto_detect_title": "Automatic Road Condition Detection",
+        "auto_detect_desc": "Real-time road surface analysis using device sensors",
+        "current_location": "Current Location",
+        "current_speed": "Current Speed",
+        "sensor_data": "Sensor Data",
+        "peak_acceleration": "Peak Acceleration",
+        "detection_result": "Detection Result",
+        "severe_damage": "SEVERE - Major road damage detected",
+        "pothole_detected": "POTHOLE - Road defect detected",
+        "bump_detected": "BUMP - Minor irregularity detected",
+        "smooth_road": "Road surface is smooth",
+        "submit_detection": "Submit Detection",
+        "apply_to_segment": "Apply to Segment",
+        "simulate_event": "Simulate Event",
+        "normal": "Normal",
+        "bump": "Bump",
+        "pothole": "Pothole",
+        "severe": "Severe",
+        "language_pref": "Language Preference",
+        "display_settings": "Display Settings",
+        "settings_saved": "Settings saved!",
+        "save_failed": "Failed to save settings",
+        "user_info": "User Information",
+        "user_id": "User ID",
+        "username": "Username",
+        "member_since": "Member Since",
+        "account_status": "Account Status",
+        "active": "Active",
+        "welcome": "Welcome to BBP",
+        "welcome_subtitle": "Road Condition Monitoring & Route Planning",
+        "enter_username": "Enter Username",
+        "login_register": "Login / Register",
+        "login_hint": "Enter any username to login. New users are automatically registered.",
+        "start_lat": "Start Latitude",
+        "start_lon": "Start Longitude",
+        "end_lat": "End Latitude",
+        "end_lon": "End Longitude",
     },
     "zh": {
+        "app_title": "BBP 道路监测",
         "dashboard": "仪表板",
         "route_planning": "路线规划",
-        "segments": "路段",
-        "reports": "报告",
-        "trips": "行程",
+        "segments": "路段管理",
+        "reports": "路况报告",
+        "trips": "行程记录",
         "auto_detection": "自动检测",
-        "settings": "设置",
+        "settings": "系统设置",
         "logout": "退出登录",
         "logged_in": "已登录",
-        "find_routes": "查找路线",
+        "find_routes": "搜索路线",
         "origin": "起点",
         "destination": "终点",
         "latitude": "纬度",
@@ -110,8 +202,98 @@ TRANSLATIONS = {
         "language": "语言",
         "dark_mode": "深色模式",
         "notifications": "通知",
+        "navigation": "导航菜单",
+        "total_segments": "路段总数",
+        "total_reports": "报告总数",
+        "total_trips": "行程总数",
+        "active_users": "活跃用户",
+        "current_weather": "当前天气",
+        "condition": "天气状况",
+        "temperature": "温度",
+        "wind": "风速",
+        "rain_chance": "降雨概率",
+        "great_cycling": "非常适合骑行！",
+        "check_weather": "骑行前请注意天气状况",
+        "plan_route": "使用真实道路数据规划骑行路线",
+        "optimization_mode": "优化模式",
+        "safety_first": "安全优先",
+        "shortest": "最短距离",
+        "balanced": "综合平衡",
+        "route_details": "路线详情",
+        "distance": "距离",
+        "duration": "时长",
+        "road_quality": "道路质量",
+        "tags": "标签",
+        "road_segments": "道路路段",
+        "segment_list": "路段列表",
+        "add_segment": "添加新路段",
+        "road_name": "道路名称",
+        "status": "状态",
+        "obstacle": "障碍物",
+        "create_segment": "创建路段",
+        "segment_created": "路段创建成功！",
+        "no_segments": "暂无路段数据",
+        "optimal": "优良",
+        "medium": "中等",
+        "suboptimal": "较差",
+        "maintenance": "维护中",
+        "road_reports": "道路状况报告",
+        "submit_report": "提交新报告",
+        "select_segment": "选择路段",
+        "road_condition": "道路状况",
+        "notes": "备注",
+        "submit": "提交",
+        "report_submitted": "报告提交成功！",
+        "recent_reports": "最近报告",
+        "no_reports": "暂无报告",
+        "confirmed": "已确认",
+        "confirm_report": "确认",
+        "trip_management": "行程管理",
+        "start_trip": "开始新行程",
+        "create_trip": "创建行程",
+        "trip_created": "行程创建成功！",
+        "your_trips": "我的行程",
+        "trip": "行程",
+        "auto_detect_title": "自动道路状况检测",
+        "auto_detect_desc": "使用设备传感器实时分析路面状况",
+        "current_location": "当前位置",
+        "current_speed": "当前速度",
+        "sensor_data": "传感器数据",
+        "peak_acceleration": "峰值加速度",
+        "detection_result": "检测结果",
+        "severe_damage": "严重 - 检测到重大道路损坏",
+        "pothole_detected": "坑洞 - 检测到道路缺陷",
+        "bump_detected": "颠簸 - 检测到轻微不平",
+        "smooth_road": "路面平整",
+        "submit_detection": "提交检测",
+        "apply_to_segment": "应用到路段",
+        "simulate_event": "模拟事件",
+        "normal": "正常",
+        "bump": "颠簸",
+        "pothole": "坑洞",
+        "severe": "严重",
+        "language_pref": "语言偏好",
+        "display_settings": "显示设置",
+        "settings_saved": "设置保存成功！",
+        "save_failed": "保存设置失败",
+        "user_info": "用户信息",
+        "user_id": "用户 ID",
+        "username": "用户名",
+        "member_since": "注册时间",
+        "account_status": "账户状态",
+        "active": "活跃",
+        "welcome": "欢迎使用 BBP",
+        "welcome_subtitle": "道路状况监测与路线规划系统",
+        "enter_username": "输入用户名",
+        "login_register": "登录 / 注册",
+        "login_hint": "输入任意用户名即可登录，新用户将自动注册。",
+        "start_lat": "起点纬度",
+        "start_lon": "起点经度",
+        "end_lat": "终点纬度",
+        "end_lon": "终点经度",
     },
     "it": {
+        "app_title": "BBP Monitor Stradale",
         "dashboard": "Cruscotto",
         "route_planning": "Pianificazione Percorso",
         "segments": "Segmenti",
@@ -128,8 +310,97 @@ TRANSLATIONS = {
         "longitude": "Longitudine",
         "save_settings": "Salva Impostazioni",
         "language": "Lingua",
-        "dark_mode": "Modalità Scura",
+        "dark_mode": "Modalita Scura",
         "notifications": "Notifiche",
+        "navigation": "NAVIGAZIONE",
+        "total_segments": "Segmenti Totali",
+        "total_reports": "Rapporti Totali",
+        "total_trips": "Viaggi Totali",
+        "active_users": "Utenti Attivi",
+        "current_weather": "Meteo Attuale",
+        "condition": "Condizione",
+        "temperature": "Temperatura",
+        "wind": "Velocita Vento",
+        "rain_chance": "Probabilita Pioggia",
+        "great_cycling": "Ottime condizioni per il ciclismo!",
+        "check_weather": "Controlla le condizioni meteo prima di pedalare",
+        "plan_route": "Pianifica il tuo percorso ciclistico",
+        "optimization_mode": "Modalita Ottimizzazione",
+        "safety_first": "Sicurezza Prima",
+        "shortest": "Distanza Minima",
+        "balanced": "Bilanciato",
+        "route_details": "Dettagli Percorso",
+        "distance": "Distanza",
+        "duration": "Durata",
+        "road_quality": "Qualita Strada",
+        "tags": "Tag",
+        "road_segments": "Segmenti Stradali",
+        "segment_list": "Lista Segmenti",
+        "add_segment": "Aggiungi Segmento",
+        "road_name": "Nome Strada",
+        "status": "Stato",
+        "obstacle": "Ostacolo",
+        "create_segment": "Crea Segmento",
+        "segment_created": "Segmento creato!",
+        "no_segments": "Nessun segmento trovato",
+        "optimal": "Ottimale",
+        "medium": "Medio",
+        "suboptimal": "Subottimale",
+        "maintenance": "Manutenzione",
+        "road_reports": "Rapporti Condizioni Stradali",
+        "submit_report": "Invia Rapporto",
+        "select_segment": "Seleziona Segmento",
+        "road_condition": "Condizione Strada",
+        "notes": "Note",
+        "submit": "Invia",
+        "report_submitted": "Rapporto inviato!",
+        "recent_reports": "Rapporti Recenti",
+        "no_reports": "Nessun rapporto",
+        "confirmed": "Confermato",
+        "confirm_report": "Conferma",
+        "trip_management": "Gestione Viaggi",
+        "start_trip": "Inizia Viaggio",
+        "create_trip": "Crea Viaggio",
+        "trip_created": "Viaggio creato!",
+        "your_trips": "I Tuoi Viaggi",
+        "trip": "Viaggio",
+        "auto_detect_title": "Rilevamento Automatico Condizioni",
+        "auto_detect_desc": "Analisi superficie stradale tramite sensori",
+        "current_location": "Posizione Attuale",
+        "current_speed": "Velocita Attuale",
+        "sensor_data": "Dati Sensore",
+        "peak_acceleration": "Accelerazione Massima",
+        "detection_result": "Risultato",
+        "severe_damage": "GRAVE - Danno stradale importante",
+        "pothole_detected": "BUCA - Difetto stradale rilevato",
+        "bump_detected": "DOSSO - Irregolarita minore",
+        "smooth_road": "Superficie stradale liscia",
+        "submit_detection": "Invia Rilevamento",
+        "apply_to_segment": "Applica a Segmento",
+        "simulate_event": "Simula Evento",
+        "normal": "Normale",
+        "bump": "Dosso",
+        "pothole": "Buca",
+        "severe": "Grave",
+        "language_pref": "Preferenza Lingua",
+        "display_settings": "Impostazioni Display",
+        "settings_saved": "Impostazioni salvate!",
+        "save_failed": "Impossibile salvare le impostazioni",
+        "user_info": "Informazioni Utente",
+        "user_id": "ID Utente",
+        "username": "Nome Utente",
+        "member_since": "Membro Dal",
+        "account_status": "Stato Account",
+        "active": "Attivo",
+        "welcome": "Benvenuto in BBP",
+        "welcome_subtitle": "Monitoraggio Condizioni Stradali",
+        "enter_username": "Inserisci Nome Utente",
+        "login_register": "Accedi / Registrati",
+        "login_hint": "Inserisci un nome utente per accedere.",
+        "start_lat": "Latitudine Inizio",
+        "start_lon": "Longitudine Inizio",
+        "end_lat": "Latitudine Fine",
+        "end_lon": "Longitudine Fine",
     }
 }
 
@@ -146,140 +417,118 @@ if "language" not in st.session_state:
 if "dark_mode" not in st.session_state:
     st.session_state.dark_mode = False
 if "current_page" not in st.session_state:
-    st.session_state.current_page = "📊 Dashboard"
+    st.session_state.current_page = "Dashboard"
+if "gps_lat" not in st.session_state:
+    st.session_state.gps_lat = 45.4642
+if "gps_lon" not in st.session_state:
+    st.session_state.gps_lon = 9.1900
 
-# ============== Dynamic CSS based on Dark Mode ==============
+# ============== Dynamic CSS - Gemini Style ==============
 if st.session_state.dark_mode:
     st.markdown("""
     <style>
-        /* Dark mode for main content */
-        .stApp {
-            background-color: #1a1a2e !important;
-            color: #ffffff !important;
+        .stApp { background-color: #131314 !important; }
+        .stApp, .stApp p, .stApp span, .stApp label, .stApp div { color: #e3e3e3 !important; }
+        h1, h2, h3, h4, h5, h6 { color: #ffffff !important; }
+        [data-testid="stSidebar"] { background-color: #1e1f20 !important; border-right: 1px solid #3c4043 !important; }
+        [data-testid="stSidebar"] * { color: #e3e3e3 !important; }
+        .stTextInput input, .stSelectbox > div > div, .stNumberInput input {
+            background-color: #2d2e2f !important; color: #e3e3e3 !important; border: 1px solid #3c4043 !important; border-radius: 8px !important;
         }
-        .stApp * {
-            color: #ffffff !important;
-        }
-        .stTextInput input, .stSelectbox select, .stNumberInput input {
-            background-color: #2d2d44 !important;
-            color: #ffffff !important;
-            border-color: #444 !important;
-        }
-        .stButton button {
-            background-color: #667eea !important;
-            color: white !important;
-        }
-        [data-testid="stMetric"] {
-            background-color: #2d2d44 !important;
-            padding: 10px !important;
-            border-radius: 8px !important;
-        }
-        .stExpander {
-            background-color: #2d2d44 !important;
-        }
-        /* Sidebar styling - dark */
-        [data-testid="stSidebar"] {
-            background: linear-gradient(180deg, #0d0d1a 0%, #1a1a2e 100%);
-        }
-        [data-testid="stSidebar"] * {
-            color: #ffffff !important;
-        }
+        .stButton > button { background-color: #8ab4f8 !important; color: #202124 !important; border: none !important; border-radius: 20px !important; }
+        .stButton > button:hover { background-color: #aecbfa !important; }
+        .stButton > button[kind="secondary"] { background-color: transparent !important; color: #8ab4f8 !important; border: 1px solid #3c4043 !important; }
+        [data-testid="stMetric"] { background-color: #2d2e2f !important; padding: 16px !important; border-radius: 12px !important; border: 1px solid #3c4043 !important; }
+        [data-testid="stMetricLabel"] { color: #9aa0a6 !important; }
+        [data-testid="stMetricValue"] { color: #e3e3e3 !important; }
+        .streamlit-expanderHeader { background-color: #2d2e2f !important; color: #e3e3e3 !important; }
+        hr { border-color: #3c4043 !important; }
+        .user-card { background: #2d2e2f; border: 1px solid #3c4043; border-radius: 12px; padding: 20px; margin: 16px 0; }
+        .user-card h4 { color: #e3e3e3 !important; margin: 0 0 4px 0; }
+        .user-card p { color: #9aa0a6 !important; margin: 0; font-size: 0.9rem; }
+        .info-table { width: 100%; border-collapse: collapse; }
+        .info-table td { padding: 12px 0; border-bottom: 1px solid #3c4043; color: #e3e3e3; }
+        .info-table td:last-child { text-align: right; }
     </style>
     """, unsafe_allow_html=True)
 else:
     st.markdown("""
     <style>
-        /* Light mode sidebar styling */
-        [data-testid="stSidebar"] {
-            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+        .stApp { background-color: #ffffff !important; }
+        .stApp, .stApp p, .stApp span, .stApp label, .stApp div { color: #1f1f1f !important; }
+        h1, h2, h3, h4, h5, h6 { color: #1f1f1f !important; }
+        [data-testid="stSidebar"] { background-color: #f8f9fa !important; border-right: 1px solid #e0e0e0 !important; }
+        [data-testid="stSidebar"] * { color: #1f1f1f !important; }
+        .stTextInput input, .stSelectbox > div > div, .stNumberInput input {
+            background-color: #ffffff !important; color: #1f1f1f !important; border: 1px solid #dadce0 !important; border-radius: 8px !important;
         }
-        [data-testid="stSidebar"] * {
-            color: #ffffff !important;
-        }
+        .stButton > button { background-color: #1a73e8 !important; color: #ffffff !important; border: none !important; border-radius: 20px !important; }
+        .stButton > button:hover { background-color: #1557b0 !important; }
+        .stButton > button[kind="secondary"] { background-color: transparent !important; color: #1a73e8 !important; border: 1px solid #dadce0 !important; }
+        [data-testid="stMetric"] { background-color: #f8f9fa !important; padding: 16px !important; border-radius: 12px !important; border: 1px solid #e0e0e0 !important; }
+        [data-testid="stMetricLabel"] { color: #5f6368 !important; }
+        [data-testid="stMetricValue"] { color: #1f1f1f !important; }
+        .streamlit-expanderHeader { background-color: #f8f9fa !important; color: #1f1f1f !important; }
+        hr { border-color: #e0e0e0 !important; }
+        .user-card { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 12px; padding: 20px; margin: 16px 0; }
+        .user-card h4 { color: #1f1f1f !important; margin: 0 0 4px 0; }
+        .user-card p { color: #5f6368 !important; margin: 0; font-size: 0.9rem; }
+        .info-table { width: 100%; border-collapse: collapse; }
+        .info-table td { padding: 12px 0; border-bottom: 1px solid #e0e0e0; color: #1f1f1f; }
+        .info-table td:last-child { text-align: right; }
     </style>
     """, unsafe_allow_html=True)
 
-# Common CSS
-st.markdown("""
-<style>
-    /* User profile card */
-    .user-card {
-        background: rgba(255,255,255,0.1);
-        border-radius: 12px;
-        padding: 16px;
-        margin: 16px 0;
-        border: 1px solid rgba(255,255,255,0.15);
-    }
-    .user-avatar {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.2rem;
-        margin-right: 12px;
-    }
-    
-    /* Main content improvements */
-    .main .block-container {
-        padding-top: 2rem;
-    }
-</style>
-""", unsafe_allow_html=True)
-
 # ============== Sidebar ==============
 with st.sidebar:
-    st.markdown("## 🚲 BBP Road Monitor")
+    st.markdown(f"### {t('app_title')}")
     
-    # Language selector - actually changes language immediately
+    # Language selector
+    st.markdown(f"**{t('language')}**")
     lang_options = ["en", "zh", "it"]
-    lang_labels = {"en": "🇬🇧 English", "zh": "🇨🇳 中文", "it": "🇮🇹 Italiano"}
+    lang_labels = {"en": "English", "zh": "中文", "it": "Italiano"}
     current_lang_idx = lang_options.index(st.session_state.language) if st.session_state.language in lang_options else 0
     
     new_lang = st.selectbox(
-        "🌐 Language",
+        t("language"),
         options=lang_options,
         format_func=lambda x: lang_labels[x],
         index=current_lang_idx,
-        key="lang_selector"
+        key="lang_selector",
+        label_visibility="collapsed"
     )
     
-    # Update language if changed
     if new_lang != st.session_state.language:
         st.session_state.language = new_lang
-        # Also save to backend if user is logged in
         if st.session_state.user:
             api_patch(f"/api/users/{st.session_state.user['id']}/settings", {"language": new_lang})
         st.rerun()
 
 # ============== Login Section ==============
 if st.session_state.user is None:
-    st.title("🚲 Best Bike Paths (BBP)")
-    st.markdown("### Road Condition Monitoring & Route Planning")
+    st.title(t("welcome"))
+    st.markdown(f"### {t('welcome_subtitle')}")
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.markdown("---")
-        username = st.text_input("👤 Enter Username", placeholder="e.g., alice")
+        username = st.text_input(t("enter_username"), placeholder="e.g., alice")
         
-        if st.button("🚀 Login / Register", use_container_width=True):
+        if st.button(t("login_register"), use_container_width=True):
             if username.strip():
                 result = api_post("/api/users", {"username": username.strip()})
                 if result:
                     st.session_state.user = result
-                    # Load user settings after login
                     settings = api_get(f"/api/users/{result['id']}/settings")
                     if settings:
                         st.session_state.language = settings.get("language", "en")
                         st.session_state.dark_mode = settings.get("dark_mode", False)
                     st.rerun()
             else:
-                st.warning("Please enter a username")
+                st.warning(t("enter_username"))
         
         st.markdown("---")
-        st.info("💡 Enter any username to login. New users are automatically registered.")
+        st.info(t("login_hint"))
     
     st.stop()
 
@@ -287,45 +536,39 @@ if st.session_state.user is None:
 user = st.session_state.user
 user_id = user["id"]
 
-# Sidebar navigation with block-style design
+# Sidebar navigation
 with st.sidebar:
     # User profile card
     st.markdown(f"""
     <div class="user-card">
-        <div style="display: flex; align-items: center;">
-            <div class="user-avatar">👤</div>
-            <div>
-                <div style="font-weight: 600; font-size: 1rem;">{user['username']}</div>
-                <div style="font-size: 0.8rem; opacity: 0.7;">{t("logged_in")}</div>
-            </div>
-        </div>
+        <h4>{user['username']}</h4>
+        <p>{t('logged_in')}</p>
     </div>
     """, unsafe_allow_html=True)
     
-    if st.button(f"🚪 {t('logout')}", use_container_width=True):
+    if st.button(t("logout"), use_container_width=True):
         st.session_state.user = None
         st.session_state.dark_mode = False
         st.session_state.language = "en"
         st.rerun()
     
     st.markdown("---")
-    st.markdown("#### Navigation")
+    st.markdown(f"**{t('navigation')}**")
     
-    # Block-style navigation with translations
+    # Navigation items without emoji
     nav_items = [
-        ("📊", "dashboard", "Dashboard"),
-        ("🗺️", "route_planning", "Route Planning"),
-        ("📍", "segments", "Segments"),
-        ("📝", "reports", "Reports"),
-        ("🚴", "trips", "Trips"),
-        ("📡", "auto_detection", "Auto Detection"),
-        ("⚙️", "settings", "Settings")
+        ("dashboard", "Dashboard"),
+        ("route_planning", "Route Planning"),
+        ("segments", "Segments"),
+        ("reports", "Reports"),
+        ("trips", "Trips"),
+        ("auto_detection", "Auto Detection"),
+        ("settings", "Settings")
     ]
     
-    for icon, key, default_name in nav_items:
-        full_name = f"{icon} {default_name}"  # Internal key stays English
-        display_name = f"{icon}  {t(key)}"
-        is_active = st.session_state.current_page == full_name
+    for key, internal_name in nav_items:
+        display_name = t(key)
+        is_active = st.session_state.current_page == internal_name
         
         if st.button(
             display_name,
@@ -333,71 +576,64 @@ with st.sidebar:
             use_container_width=True,
             type="primary" if is_active else "secondary"
         ):
-            st.session_state.current_page = full_name
+            st.session_state.current_page = internal_name
             st.rerun()
 
 menu = st.session_state.current_page
 
 # ============== Dashboard ==============
-if menu == "📊 Dashboard":
-    st.title("📊 Dashboard")
+if menu == "Dashboard":
+    st.title(t("dashboard"))
     
-    # Fetch stats
     stats = api_get("/api/stats", {"user_id": user_id})
     
     if stats:
         col1, col2, col3, col4 = st.columns(4)
-        col1.metric("🛣️ Total Segments", stats.get("total_segments", 0))
-        col2.metric("📝 Total Reports", stats.get("total_reports", 0))
-        col3.metric("🚴 Total Trips", stats.get("total_trips", 0))
-        col4.metric("👥 Active Users", stats.get("active_users", 0))
+        col1.metric(t("total_segments"), stats.get("total_segments", 0))
+        col2.metric(t("total_reports"), stats.get("total_reports", 0))
+        col3.metric(t("total_trips"), stats.get("total_trips", 0))
+        col4.metric(t("active_users"), stats.get("active_users", 0))
         
         st.markdown("---")
         
-        # Weather
-        st.subheader("🌤️ Current Weather")
+        st.subheader(t("current_weather"))
         weather = api_get("/api/weather", {"lat": 45.478, "lon": 9.227, "user_id": user_id})
         if weather:
             wcol1, wcol2, wcol3, wcol4 = st.columns(4)
-            wcol1.metric("Condition", weather.get("condition_localized", "N/A"))
-            wcol2.metric("Temperature", f"{weather.get('temperature_c', 'N/A')}°C")
-            wcol3.metric("Wind", f"{weather.get('wind_speed_kmh', 'N/A')} km/h")
-            wcol4.metric("Rain Chance", f"{weather.get('rain_chance_percent', 'N/A')}%")
+            wcol1.metric(t("condition"), weather.get("condition_localized", "N/A"))
+            wcol2.metric(t("temperature"), f"{weather.get('temperature_c', 'N/A')}C")
+            wcol3.metric(t("wind"), f"{weather.get('wind_speed_kmh', 'N/A')} km/h")
+            wcol4.metric(t("rain_chance"), f"{weather.get('rain_chance_percent', 'N/A')}%")
             
             if weather.get("is_cycling_friendly"):
-                st.success("🚲 Great conditions for cycling!")
+                st.success(t("great_cycling"))
             else:
-                st.warning("⚠️ Check weather conditions before cycling")
+                st.warning(t("check_weather"))
 
 # ============== Route Planning ==============
-elif menu == "🗺️ Route Planning":
-    st.title("🗺️ Route Planning")
-    st.markdown("Plan your cycling route with real road geometry from OSRM.")
+elif menu == "Route Planning":
+    st.title(t("route_planning"))
+    st.markdown(t("plan_route"))
     
     col1, col2 = st.columns(2)
     with col1:
-        st.subheader("📍 Origin")
-        from_lat = st.number_input("Latitude", value=45.4781, key="from_lat", format="%.4f")
-        from_lon = st.number_input("Longitude", value=9.2275, key="from_lon", format="%.4f")
+        st.subheader(t("origin"))
+        from_lat = st.number_input(t("latitude"), value=45.4781, key="from_lat", format="%.4f")
+        from_lon = st.number_input(t("longitude"), value=9.2275, key="from_lon", format="%.4f")
     
     with col2:
-        st.subheader("🏁 Destination")
-        to_lat = st.number_input("Latitude", value=45.4642, key="to_lat", format="%.4f")
-        to_lon = st.number_input("Longitude", value=9.1900, key="to_lon", format="%.4f")
+        st.subheader(t("destination"))
+        to_lat = st.number_input(t("latitude"), value=45.4642, key="to_lat", format="%.4f")
+        to_lon = st.number_input(t("longitude"), value=9.1900, key="to_lon", format="%.4f")
     
-    # Scoring mode
     mode = st.selectbox(
-        "🎯 Optimization Mode",
+        t("optimization_mode"),
         ["safety_first", "shortest", "balanced"],
-        format_func=lambda x: {
-            "safety_first": "🛡️ Safety First (avoid bad roads)",
-            "shortest": "📏 Shortest Distance",
-            "balanced": "⚖️ Balanced"
-        }.get(x, x)
+        format_func=lambda x: t(x)
     )
     
-    if st.button("🔍 Find Routes", use_container_width=True):
-        with st.spinner("Fetching routes from OSRM..."):
+    if st.button(t("find_routes"), use_container_width=True):
+        with st.spinner("..."):
             routes = api_post("/api/path/search", {
                 "origin": {"lat": from_lat, "lon": from_lon},
                 "destination": {"lat": to_lat, "lon": to_lon},
@@ -405,29 +641,22 @@ elif menu == "🗺️ Route Planning":
             }, {"user_id": user_id})
             
             if routes and routes.get("routes"):
-                st.success(f"✅ Found {len(routes['routes'])} routes!")
+                st.success(f"{t('route_details')}: {len(routes['routes'])}")
                 
-                # Show weather info
                 if routes.get("weather_summary"):
-                    st.info(f"🌤️ {routes['weather_summary']}")
+                    st.info(routes['weather_summary'])
                 if routes.get("cycling_recommendation"):
-                    st.write(f"🚲 {routes['cycling_recommendation']}")
+                    st.write(routes['cycling_recommendation'])
                 
-                # Create map
                 m = folium.Map(location=[(from_lat + to_lat)/2, (from_lon + to_lon)/2], zoom_start=14)
+                folium.Marker([from_lat, from_lon], popup=t("origin"), icon=folium.Icon(color="green")).add_to(m)
+                folium.Marker([to_lat, to_lon], popup=t("destination"), icon=folium.Icon(color="red")).add_to(m)
                 
-                # Add markers
-                folium.Marker([from_lat, from_lon], popup="Origin", icon=folium.Icon(color="green")).add_to(m)
-                folium.Marker([to_lat, to_lon], popup="Destination", icon=folium.Icon(color="red")).add_to(m)
-                
-                # Add routes
                 colors = ["blue", "purple", "orange", "darkgreen", "darkred"]
                 for i, route in enumerate(routes["routes"][:5]):
-                    # Get geometry from GeoJSON format
                     geojson = route.get("geometry_geojson", {})
                     coords = geojson.get("coordinates", [])
                     if coords:
-                        # Convert [lon, lat] to [lat, lon] for folium
                         latlon_coords = [[c[1], c[0]] for c in coords]
                         folium.PolyLine(
                             latlon_coords,
@@ -439,281 +668,312 @@ elif menu == "🗺️ Route Planning":
                 
                 st_folium(m, width=700, height=500, returned_objects=[])
                 
-                # Route details
-                st.subheader("📋 Route Details")
+                st.subheader(t("route_details"))
                 for i, route in enumerate(routes["routes"][:5]):
                     tags_display = ", ".join(route.get("tags_localized", route.get("tags", [])))
                     with st.expander(f"Route {route.get('route_id', i+1)}: {tags_display}", expanded=(i==0)):
                         rcol1, rcol2, rcol3 = st.columns(3)
                         distance_km = route.get('total_distance', 0) / 1000
-                        rcol1.metric("Distance", f"{distance_km:.2f} km")
-                        rcol2.metric("Duration", route.get("duration_display", "N/A"))
-                        rcol3.metric("Road Quality", f"{route.get('road_quality_score', 0):.0f}/100")
+                        rcol1.metric(t("distance"), f"{distance_km:.2f} km")
+                        rcol2.metric(t("duration"), route.get("duration_display", "N/A"))
+                        rcol3.metric(t("road_quality"), f"{route.get('road_quality_score', 0):.0f}/100")
                         
                         tags = route.get("tags", [])
                         if tags:
-                            st.write("**Tags:**", ", ".join(tags))
+                            st.write(f"**{t('tags')}:** {', '.join(tags)}")
                         
-                        # Show warnings if any
                         warnings = route.get("segments_warning_localized", route.get("segments_warning", []))
                         if warnings:
-                            st.warning(f"⚠️ {len(warnings)} segment warning(s) on this route")
+                            st.warning(f"{len(warnings)} warnings")
 
 # ============== Segments ==============
-elif menu == "📍 Segments":
-    st.title("📍 Road Segments")
+elif menu == "Segments":
+    st.title(t("road_segments"))
     
-    # Fetch segments
-    segments = api_get("/api/segments", {"user_id": user_id})
+    col_map, col_form = st.columns([2, 1])
     
-    if segments and len(segments) > 0:
-        # Create map with segments - use helper function for coords
-        coords_list = [get_seg_coords(s) for s in segments if get_seg_coords(s)[0] != 0]
-        if coords_list:
-            center_lat = sum(c[0] for c in coords_list) / len(coords_list)
-            center_lon = sum(c[1] for c in coords_list) / len(coords_list)
+    with col_map:
+        segments = api_get("/api/segments", {"user_id": user_id})
+        
+        if segments and len(segments) > 0:
+            coords_list = [get_seg_coords(s) for s in segments if get_seg_coords(s)[0] != 0]
+            if coords_list:
+                center_lat = sum(c[0] for c in coords_list) / len(coords_list)
+                center_lon = sum(c[1] for c in coords_list) / len(coords_list)
+            else:
+                center_lat, center_lon = 45.478, 9.227
+            
+            m = folium.Map(location=[center_lat, center_lon], zoom_start=13)
+            
+            status_colors = {
+                "optimal": "green",
+                "medium": "orange", 
+                "suboptimal": "red",
+                "maintenance": "gray"
+            }
+            
+            for seg in segments:
+                start_lat, start_lon, end_lat, end_lon = get_seg_coords(seg)
+                if start_lat == 0:
+                    continue
+                color = status_colors.get(seg.get("status", "unknown"), "blue")
+                name = get_seg_name(seg)
+                folium.PolyLine(
+                    [[start_lat, start_lon], [end_lat, end_lon]],
+                    color=color,
+                    weight=5,
+                    popup=f"{name}: {seg.get('status_localized', seg.get('status', 'unknown'))}"
+                ).add_to(m)
+            
+            st_folium(m, width=None, height=400, returned_objects=[])
+            
+            st.subheader(t("segment_list"))
+            df = pd.DataFrame([{
+                "ID": s["id"],
+                t("road_name"): get_seg_name(s),
+                t("status"): s.get("status_localized", s.get("status", "unknown")),
+                t("obstacle"): s.get("obstacle", "-") or "-"
+            } for s in segments])
+            st.dataframe(df, use_container_width=True)
         else:
-            center_lat, center_lon = 45.478, 9.227
-        
-        m = folium.Map(location=[center_lat, center_lon], zoom_start=13)
-        
-        status_colors = {
-            "optimal": "green",
-            "medium": "orange", 
-            "suboptimal": "red",
-            "maintenance": "gray"
-        }
-        
-        for seg in segments:
-            start_lat, start_lon, end_lat, end_lon = get_seg_coords(seg)
-            if start_lat == 0:
-                continue
-            color = status_colors.get(seg.get("status", "unknown"), "blue")
-            name = get_seg_name(seg)
-            folium.PolyLine(
-                [[start_lat, start_lon], [end_lat, end_lon]],
-                color=color,
-                weight=5,
-                popup=f"{name}: {seg.get('status_localized', seg.get('status', 'unknown'))}"
-            ).add_to(m)
-        
-        st_folium(m, width=700, height=400, returned_objects=[])
-        
-        # Segment list
-        st.subheader("📋 Segment List")
-        df = pd.DataFrame([{
-            "ID": s["id"],
-            "Name": get_seg_name(s),
-            "Status": s.get("status_localized", s.get("status", "unknown")),
-            "Obstacles": s.get("obstacle", "None") or "None"
-        } for s in segments])
-        st.dataframe(df, use_container_width=True)
-    else:
-        st.info("No segments found. Add some segments to get started!")
+            st.info(t("no_segments"))
     
-    # Add new segment
-    st.markdown("---")
-    st.subheader("➕ Add New Segment")
-    with st.form("new_segment"):
-        seg_name = st.text_input("Road Name", placeholder="e.g., Via Roma")
-        col1, col2 = st.columns(2)
-        with col1:
-            start_lat = st.number_input("Start Latitude", value=45.478, format="%.4f")
-            start_lon = st.number_input("Start Longitude", value=9.227, format="%.4f")
-        with col2:
-            end_lat = st.number_input("End Latitude", value=45.479, format="%.4f")
-            end_lon = st.number_input("End Longitude", value=9.228, format="%.4f")
-        
-        seg_status = st.selectbox("Status", ["optimal", "medium", "suboptimal", "maintenance"])
-        obstacle = st.text_input("Obstacle (optional)", placeholder="e.g., pothole")
-        
-        if st.form_submit_button("Create Segment"):
-            result = api_post("/api/segments", {
-                "user_id": user_id,
-                "road_name": seg_name,
-                "start_lat": start_lat,
-                "start_lon": start_lon,
-                "end_lat": end_lat,
-                "end_lon": end_lon,
-                "status": seg_status,
-                "obstacle": obstacle if obstacle else None
-            })
-            if result:
-                st.success(f"✅ Segment created!")
-                st.rerun()
+    with col_form:
+        st.subheader(t("add_segment"))
+        with st.form("new_segment"):
+            seg_name = st.text_input(t("road_name"), placeholder="e.g., Via Roma")
+            start_lat = st.number_input(t("start_lat"), value=45.478, format="%.4f")
+            start_lon = st.number_input(t("start_lon"), value=9.227, format="%.4f")
+            end_lat = st.number_input(t("end_lat"), value=45.479, format="%.4f")
+            end_lon = st.number_input(t("end_lon"), value=9.228, format="%.4f")
+            
+            status_options = ["optimal", "medium", "suboptimal", "maintenance"]
+            seg_status = st.selectbox(t("status"), status_options, format_func=lambda x: t(x))
+            obstacle = st.text_input(t("obstacle"), placeholder="e.g., pothole")
+            
+            if st.form_submit_button(t("create_segment")):
+                result = api_post("/api/segments", {
+                    "user_id": user_id,
+                    "road_name": seg_name,
+                    "start_lat": start_lat,
+                    "start_lon": start_lon,
+                    "end_lat": end_lat,
+                    "end_lon": end_lon,
+                    "status": seg_status,
+                    "obstacle": obstacle if obstacle else None
+                })
+                if result:
+                    st.success(t("segment_created"))
+                    st.rerun()
 
 # ============== Reports ==============
-elif menu == "📝 Reports":
-    st.title("📝 Road Condition Reports")
+elif menu == "Reports":
+    st.title(t("road_reports"))
     
-    # Get segments for dropdown
     segments = api_get("/api/segments", {"user_id": user_id})
     
     if segments:
         segment_options = {s["id"]: f"{get_seg_name(s)} (ID: {s['id']})" for s in segments}
         
-        # Submit new report
-        st.subheader("📝 Submit New Report")
-        with st.form("submit_report_form"):
-            segment_id = st.selectbox(
-                "Select Segment",
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader(t("submit_report"))
+            with st.form("submit_report_form"):
+                segment_id = st.selectbox(
+                    t("select_segment"),
+                    options=list(segment_options.keys()),
+                    format_func=lambda x: segment_options[x]
+                )
+                
+                condition = st.select_slider(
+                    t("road_condition"),
+                    options=["suboptimal", "medium", "optimal"],
+                    value="medium",
+                    format_func=lambda x: t(x)
+                )
+                
+                note = st.text_area(t("notes"), placeholder="...")
+                
+                if st.form_submit_button(t("submit")):
+                    result = api_post(f"/api/segments/{segment_id}/reports", {
+                        "user_id": user_id,
+                        "note": note
+                    })
+                    if result:
+                        st.success(t("report_submitted"))
+                        st.rerun()
+        
+        with col2:
+            st.subheader(t("recent_reports"))
+            
+            selected_seg = st.selectbox(
+                t("select_segment"),
                 options=list(segment_options.keys()),
-                format_func=lambda x: segment_options[x]
+                format_func=lambda x: segment_options[x],
+                key="view_reports_seg"
             )
             
-            condition = st.select_slider(
-                "Road Condition",
-                options=["suboptimal", "medium", "optimal"],
-                value="medium",
-                format_func=lambda x: {"optimal": "✅ Optimal", "medium": "⚠️ Medium", "suboptimal": "❌ Poor"}.get(x, x)
-            )
-            
-            note = st.text_area("Notes", placeholder="Describe the road condition...")
-            
-            if st.form_submit_button("Submit Report"):
-                result = api_post(f"/api/segments/{segment_id}/reports", {
-                    "user_id": user_id,
-                    "note": note
-                })
-                if result:
-                    st.success("✅ Report submitted successfully!")
-                    st.rerun()
-        
-        # View reports
-        st.markdown("---")
-        st.subheader("📋 Recent Reports")
-        
-        selected_seg = st.selectbox(
-            "View reports for segment:",
-            options=list(segment_options.keys()),
-            format_func=lambda x: segment_options[x],
-            key="view_reports_seg"
-        )
-        
-        reports = api_get(f"/api/segments/{selected_seg}/reports")
-        if reports:
-            for report in reports[:10]:
-                with st.container():
-                    col1, col2, col3 = st.columns([2, 1, 1])
-                    col1.write(f"**{report.get('note', 'No notes')}**")
-                    col2.write(f"ID: {report.get('id', 'N/A')}")
-                    col3.write(f"Confirmed: {'✅' if report.get('confirmed') else '❌'}")
-                    
-                    if not report.get("confirmed"):
-                        if st.button(f"Confirm Report #{report['id']}", key=f"confirm_{report['id']}"):
-                            api_post(f"/api/reports/{report['id']}/confirm", {"user_id": user_id})
-                            st.rerun()
-                    st.markdown("---")
-        else:
-            st.info("No reports for this segment yet")
+            reports = api_get(f"/api/segments/{selected_seg}/reports")
+            if reports:
+                for report in reports[:10]:
+                    with st.container():
+                        st.markdown(f"**{report.get('note', '-')}**")
+                        rcol1, rcol2 = st.columns(2)
+                        rcol1.write(f"ID: {report.get('id', 'N/A')}")
+                        status = "Yes" if report.get('confirmed') else "No"
+                        rcol2.write(f"{t('confirmed')}: {status}")
+                        
+                        if not report.get("confirmed"):
+                            if st.button(f"{t('confirm_report')} #{report['id']}", key=f"confirm_{report['id']}"):
+                                api_post(f"/api/reports/{report['id']}/confirm", {"user_id": user_id})
+                                st.rerun()
+                        st.markdown("---")
+            else:
+                st.info(t("no_reports"))
 
 # ============== Trips ==============
-elif menu == "🚴 Trips":
-    st.title("🚴 Trip Management")
+elif menu == "Trips":
+    st.title(t("trip_management"))
     
-    # Create new trip
-    st.subheader("➕ Start New Trip")
-    with st.form("new_trip"):
-        col1, col2 = st.columns(2)
-        with col1:
-            trip_start_lat = st.number_input("Start Latitude", value=45.478, format="%.4f")
-            trip_start_lon = st.number_input("Start Longitude", value=9.227, format="%.4f")
-        with col2:
-            trip_end_lat = st.number_input("End Latitude", value=45.464, format="%.4f")
-            trip_end_lon = st.number_input("End Longitude", value=9.190, format="%.4f")
-        
-        if st.form_submit_button("🚀 Create Trip"):
-            result = api_post("/api/trips", {
-                "user_id": user_id,
-                "start_lat": trip_start_lat,
-                "start_lon": trip_start_lon,
-                "end_lat": trip_end_lat,
-                "end_lon": trip_end_lon
-            })
-            if result:
-                st.success(f"✅ Trip #{result['id']} created!")
-                st.rerun()
+    col1, col2 = st.columns(2)
     
-    # List trips
-    st.markdown("---")
-    st.subheader("📋 Your Trips")
+    with col1:
+        st.subheader(t("start_trip"))
+        with st.form("new_trip"):
+            trip_start_lat = st.number_input(t("start_lat"), value=45.478, format="%.4f")
+            trip_start_lon = st.number_input(t("start_lon"), value=9.227, format="%.4f")
+            trip_end_lat = st.number_input(t("end_lat"), value=45.464, format="%.4f")
+            trip_end_lon = st.number_input(t("end_lon"), value=9.190, format="%.4f")
+            
+            if st.form_submit_button(t("create_trip")):
+                result = api_post("/api/trips", {
+                    "user_id": user_id,
+                    "start_lat": trip_start_lat,
+                    "start_lon": trip_start_lon,
+                    "end_lat": trip_end_lat,
+                    "end_lon": trip_end_lon
+                })
+                if result:
+                    st.success(t("trip_created"))
+                    st.rerun()
     
-    trips = api_get("/api/trips", {"user_id": user_id})
-    if trips:
-        for trip in trips[:10]:
-            with st.expander(f"Trip #{trip['id']} - {trip.get('created_at', 'N/A')[:10]}"):
-                col1, col2, col3 = st.columns(3)
-                col1.metric("Distance", f"{trip.get('distance_km', 0):.2f} km")
-                col2.metric("Duration", trip.get("duration_str", "N/A"))
-                col3.metric("Status", trip.get("status", "N/A"))
+    with col2:
+        st.subheader(t("your_trips"))
+        trips = api_get("/api/trips", {"user_id": user_id})
+        if trips:
+            for trip in trips[:10]:
+                created = trip.get('created_at', 'N/A')
+                if created and len(created) >= 10:
+                    created = created[:10]
+                with st.expander(f"{t('trip')} #{trip['id']} - {created}"):
+                    tcol1, tcol2, tcol3 = st.columns(3)
+                    tcol1.metric(t("distance"), f"{trip.get('distance_km', 0):.2f} km")
+                    tcol2.metric(t("duration"), trip.get("duration_str", "N/A"))
+                    tcol3.metric(t("status"), trip.get("status", "N/A"))
 
 # ============== Auto Detection ==============
-elif menu == "📡 Auto Detection":
-    st.title("📡 Automatic Road Condition Detection")
-    st.markdown("Simulate accelerometer data to detect road anomalies.")
+elif menu == "Auto Detection":
+    st.title(t("auto_detect_title"))
+    st.markdown(t("auto_detect_desc"))
     
-    # Sensor simulation
-    st.subheader("� Sensor Data Simulation")
+    st.subheader(t("current_location"))
+    gps_html = """
+    <div style="padding: 15px; border-radius: 8px; background: #f5f5f5; margin: 10px 0;">
+        <div id="status">Requesting location...</div>
+        <div id="data" style="display: none; margin-top: 10px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div><strong>Lat:</strong> <span id="lat">--</span></div>
+                <div><strong>Lon:</strong> <span id="lon">--</span></div>
+                <div><strong>Speed:</strong> <span id="speed">--</span> km/h</div>
+                <div><strong>Accuracy:</strong> <span id="acc">--</span> m</div>
+            </div>
+        </div>
+    </div>
+    <script>
+        if (navigator.geolocation) {
+            navigator.geolocation.watchPosition(
+                function(p) {
+                    document.getElementById('status').innerHTML = '<span style="color:green;">OK</span>';
+                    document.getElementById('data').style.display = 'block';
+                    document.getElementById('lat').textContent = p.coords.latitude.toFixed(6);
+                    document.getElementById('lon').textContent = p.coords.longitude.toFixed(6);
+                    document.getElementById('speed').textContent = p.coords.speed ? (p.coords.speed * 3.6).toFixed(1) : '0';
+                    document.getElementById('acc').textContent = p.coords.accuracy.toFixed(1);
+                },
+                function(e) { document.getElementById('status').textContent = e.message; },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        }
+    </script>
+    """
+    st.components.v1.html(gps_html, height=130)
+    
+    st.markdown("---")
+    st.subheader(t("sensor_data"))
     
     col1, col2 = st.columns(2)
     with col1:
-        speed = st.slider("Current Speed (km/h)", 0, 50, 18)
+        use_sim = st.checkbox(t("simulate_event"), value=True)
     with col2:
-        severity = st.selectbox("Simulate Event", ["Normal", "Bump", "Pothole", "Severe"])
+        if use_sim:
+            severity = st.selectbox(t("simulate_event"), [t("normal"), t("bump"), t("pothole"), t("severe")], key="sev_sel", label_visibility="collapsed")
+            sev_map = {t("normal"): 1, t("bump"): 3, t("pothole"): 5, t("severe"): 8}
+            mult = sev_map.get(severity, 1)
+        else:
+            mult = 1
     
-    # Generate accelerometer data based on severity
-    severity_multiplier = {"Normal": 1, "Bump": 3, "Pothole": 5, "Severe": 8}
-    mult = severity_multiplier.get(severity, 1)
+    np.random.seed(int(time.time()) % 1000)
+    base = np.random.randn(50, 3) * 0.5
+    if use_sim and mult > 1:
+        for pos in np.random.choice(50, size=3, replace=False):
+            base[pos] = np.random.randn(3) * mult
     
-    sensor_data = pd.DataFrame(
-        np.random.randn(50, 3) * mult,
-        columns=['Accel_X', 'Accel_Y', 'Accel_Z']
-    )
-    
+    sensor_data = pd.DataFrame(base, columns=['Accel_X', 'Accel_Y', 'Accel_Z'])
     st.line_chart(sensor_data)
     
-    # Detection thresholds (from your backend)
     max_accel = sensor_data.abs().max().max()
-    st.metric("Peak Acceleration", f"{max_accel:.1f} m/s²")
     
-    if max_accel > 25:
-        st.error("🚨 SEVERE - Major road damage detected!")
-    elif max_accel > 15:
-        st.warning("⚠️ POTHOLE - Significant road defect detected!")
-    elif max_accel > 8:
-        st.info("📍 BUMP - Minor road irregularity detected")
-    else:
-        st.success("✅ Road surface is smooth")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric(t("peak_acceleration"), f"{max_accel:.2f} m/s2")
+    with col2:
+        if max_accel > 25:
+            st.error(t("severe_damage"))
+            detected = "severe"
+        elif max_accel > 15:
+            st.warning(t("pothole_detected"))
+            detected = "pothole"
+        elif max_accel > 8:
+            st.info(t("bump_detected"))
+            detected = "bump"
+        else:
+            st.success(t("smooth_road"))
+            detected = "smooth"
     
-    # Submit detection to segment
     st.markdown("---")
-    st.subheader("📤 Submit Detection")
+    st.subheader(t("submit_detection"))
     
     segments = api_get("/api/segments", {"user_id": user_id})
     if segments:
         segment_options = {s["id"]: f"{get_seg_name(s)} (ID: {s['id']})" for s in segments}
-        segment_id = st.selectbox(
-            "Apply to Segment",
-            options=list(segment_options.keys()),
-            format_func=lambda x: segment_options[x]
-        )
+        segment_id = st.selectbox(t("apply_to_segment"), options=list(segment_options.keys()), format_func=lambda x: segment_options[x])
         
-        if st.button("📤 Submit Auto-Detection"):
-            # Prepare sensor reading
+        if st.button(t("submit_detection"), key="submit_det_btn"):
             reading = {
                 "acceleration_x": float(sensor_data["Accel_X"].iloc[-1]),
                 "acceleration_y": float(sensor_data["Accel_Y"].iloc[-1]),
                 "acceleration_z": float(sensor_data["Accel_Z"].iloc[-1]),
-                "speed_mps": speed / 3.6,
+                "speed_mps": 5.0,
                 "gps_accuracy_m": 5.0
             }
             result = api_post(f"/api/segments/{segment_id}/auto-detect", reading)
             if result:
-                st.success(f"✅ Detection submitted! Severity: {result.get('severity', 'Unknown')}")
+                st.success(f"{t('submit_detection')}: {result.get('severity', detected)}")
 
 # ============== Settings ==============
-elif menu == "⚙️ Settings":
-    st.title(f"⚙️ {t('settings')}")
+elif menu == "Settings":
+    st.title(t("settings"))
     
     # Fetch current settings from backend
     settings = api_get(f"/api/users/{user_id}/settings")
@@ -722,23 +982,23 @@ elif menu == "⚙️ Settings":
         st.session_state.language = settings.get("language", "en")
         st.session_state.dark_mode = settings.get("dark_mode", False)
     
-    st.subheader(f"🌐 {t('language')}")
+    st.subheader(t("language"))
     current_lang_index = ["en", "zh", "it"].index(st.session_state.language) if st.session_state.language in ["en", "zh", "it"] else 0
     new_lang = st.selectbox(
         t("language"),
         options=["en", "zh", "it"],
-        format_func=lambda x: {"en": "🇬🇧 English", "zh": "🇨🇳 中文", "it": "🇮🇹 Italiano"}.get(x, x),
+        format_func=lambda x: {"en": "English", "zh": "中文", "it": "Italiano"}.get(x, x),
         index=current_lang_index,
         label_visibility="collapsed"
     )
     
-    st.subheader(f"🎨 {t('dark_mode')}")
+    st.subheader(t("dark_mode"))
     dark_mode = st.toggle(t("dark_mode"), value=st.session_state.dark_mode)
     
-    st.subheader(f"🔔 {t('notifications')}")
+    st.subheader(t("notifications"))
     notifications = st.toggle(t("notifications"), value=settings.get("notifications_enabled", True) if settings else True)
     
-    if st.button(f"💾 {t('save_settings')}", use_container_width=True):
+    if st.button(t("save_settings"), use_container_width=True):
         # Use PATCH to update settings
         result = api_patch(f"/api/users/{user_id}/settings", {
             "language": new_lang,
@@ -749,13 +1009,13 @@ elif menu == "⚙️ Settings":
             # Update session state immediately
             st.session_state.language = new_lang
             st.session_state.dark_mode = dark_mode
-            st.success("✅ Settings saved!")
+            st.success(t("settings_saved"))
             st.rerun()
         else:
-            st.error("Failed to save settings")
+            st.error(t("save_failed"))
     
     st.markdown("---")
-    st.subheader("ℹ️ User Information")
+    st.subheader(t("user_info"))
     st.json(user)
 
 # ============== Footer ==============
