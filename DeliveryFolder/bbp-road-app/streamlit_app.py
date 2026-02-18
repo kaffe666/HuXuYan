@@ -1229,136 +1229,88 @@ elif menu == "Trips":
         st.session_state.trip_to_lat = 45.464
     if "trip_to_lon" not in st.session_state:
         st.session_state.trip_to_lon = 9.190
-    
-    # GPS Live Tracking Section
-    st.markdown(f"### {t('live_tracking')}")
-    
-    gps_tracking_html = """
-    <div style="padding: 15px; border-radius: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; margin: 10px 0;">
-        <div id="tracking-status" style="font-weight: bold; font-size: 16px;">📍 GPS Ready</div>
-        <div id="tracking-data" style="margin-top: 10px; display: none;">
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 14px;">
-                <div>Lat: <span id="track-lat">--</span></div>
-                <div>Lon: <span id="track-lon">--</span></div>
-                <div>Speed: <span id="track-speed">--</span> km/h</div>
-                <div>Points: <span id="track-points">0</span></div>
-            </div>
-            <div style="margin-top: 8px;">Distance: <span id="track-distance" style="font-weight: bold;">0.00</span> km</div>
-        </div>
-        <div style="margin-top: 12px;">
-            <button id="start-track-btn" onclick="startTracking()" style="padding: 8px 16px; border: none; border-radius: 5px; background: #4ade80; color: black; cursor: pointer; font-weight: bold;">▶ Start Tracking</button>
-            <button id="stop-track-btn" onclick="stopTracking()" style="padding: 8px 16px; border: none; border-radius: 5px; background: #f87171; color: white; cursor: pointer; font-weight: bold; display: none;">⏹ Stop</button>
-        </div>
-    </div>
-    <script>
-        let watchId = null;
-        let trackPoints = [];
-        let totalDistance = 0;
-        
-        function haversineDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371; // km
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                      Math.sin(dLon/2) * Math.sin(dLon/2);
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        }
-        
-        function startTracking() {
-            if (!navigator.geolocation) {
-                document.getElementById('tracking-status').textContent = '❌ GPS not supported';
-                return;
-            }
-            trackPoints = [];
-            totalDistance = 0;
-            document.getElementById('tracking-data').style.display = 'block';
-            document.getElementById('start-track-btn').style.display = 'none';
-            document.getElementById('stop-track-btn').style.display = 'inline-block';
-            document.getElementById('tracking-status').textContent = '🔴 TRACKING...';
-            
-            watchId = navigator.geolocation.watchPosition(
-                function(pos) {
-                    const lat = pos.coords.latitude;
-                    const lon = pos.coords.longitude;
-                    const speed = pos.coords.speed ? (pos.coords.speed * 3.6).toFixed(1) : '0';
-                    
-                    document.getElementById('track-lat').textContent = lat.toFixed(6);
-                    document.getElementById('track-lon').textContent = lon.toFixed(6);
-                    document.getElementById('track-speed').textContent = speed;
-                    
-                    if (trackPoints.length > 0) {
-                        const last = trackPoints[trackPoints.length - 1];
-                        const dist = haversineDistance(last.lat, last.lon, lat, lon);
-                        if (dist > 0.005) { // Only add if moved > 5 meters
-                            totalDistance += dist;
-                            trackPoints.push({lat, lon, time: Date.now()});
-                        }
-                    } else {
-                        trackPoints.push({lat, lon, time: Date.now()});
-                    }
-                    
-                    document.getElementById('track-points').textContent = trackPoints.length;
-                    document.getElementById('track-distance').textContent = totalDistance.toFixed(2);
-                },
-                function(err) {
-                    document.getElementById('tracking-status').textContent = '❌ GPS Error: ' + err.message;
-                },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 3000 }
-            );
-        }
-        
-        function stopTracking() {
-            if (watchId) {
-                navigator.geolocation.clearWatch(watchId);
-                watchId = null;
-            }
-            document.getElementById('start-track-btn').style.display = 'inline-block';
-            document.getElementById('stop-track-btn').style.display = 'none';
-            document.getElementById('tracking-status').textContent = '✅ Tracking Stopped - ' + trackPoints.length + ' points recorded';
-            
-            // Store track data in localStorage for potential retrieval
-            if (trackPoints.length > 1) {
-                localStorage.setItem('lastTrack', JSON.stringify({
-                    points: trackPoints,
-                    distance: totalDistance,
-                    startLat: trackPoints[0].lat,
-                    startLon: trackPoints[0].lon,
-                    endLat: trackPoints[trackPoints.length-1].lat,
-                    endLon: trackPoints[trackPoints.length-1].lon
-                }));
-            }
-        }
-    </script>
-    """
-    st.components.v1.html(gps_tracking_html, height=180)
-    
-    st.markdown("---")
+    if "gps_track_points" not in st.session_state:
+        st.session_state.gps_track_points = []
+    if "tracking_active" not in st.session_state:
+        st.session_state.tracking_active = False
     
     col1, col2 = st.columns(2)
     
     with col1:
         st.subheader(t("start_trip"))
         
-        # Origin place search
+        # Origin section with GPS integration
         st.markdown(f"**{t('origin')}**")
-        trip_origin_search = st.text_input(t("search_origin_place"), key="trip_origin_search", placeholder="e.g., Milano Centrale")
-        if st.button(t("search"), key="trip_origin_btn"):
-            results = geocode_place(trip_origin_search)
-            if results:
-                st.session_state.trip_origin_results = results
-            else:
-                st.error(t("place_not_found"))
         
-        if "trip_origin_results" in st.session_state and st.session_state.trip_origin_results:
-            options = {i: r.get("display_name", "")[:50] for i, r in enumerate(st.session_state.trip_origin_results)}
-            selected = st.selectbox(t("select_location"), options.keys(), format_func=lambda x: options[x], key="trip_origin_select")
-            if selected is not None:
-                r = st.session_state.trip_origin_results[selected]
-                st.session_state.trip_from_lat = float(r["lat"])
-                st.session_state.trip_from_lon = float(r["lon"])
+        # Use My Location button (JavaScript for GPS)
+        use_location_html = """
+        <div style="margin-bottom: 10px;">
+            <button id="use-my-loc-btn" onclick="getMyLocation()" 
+                style="padding: 8px 16px; border: 2px solid #22c55e; border-radius: 8px; 
+                       background: white; color: #22c55e; cursor: pointer; font-weight: 600;
+                       display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
+                <span>📍</span> Use My Current Location
+            </button>
+            <div id="loc-status" style="margin-top: 6px; font-size: 13px; color: #666;"></div>
+        </div>
+        <script>
+            function getMyLocation() {
+                const btn = document.getElementById('use-my-loc-btn');
+                const status = document.getElementById('loc-status');
+                
+                if (!navigator.geolocation) {
+                    status.innerHTML = '<span style="color: #ef4444;">❌ GPS not supported</span>';
+                    return;
+                }
+                
+                btn.innerHTML = '<span>⏳</span> Getting location...';
+                btn.style.opacity = '0.6';
+                
+                navigator.geolocation.getCurrentPosition(
+                    function(pos) {
+                        const lat = pos.coords.latitude.toFixed(6);
+                        const lon = pos.coords.longitude.toFixed(6);
+                        status.innerHTML = '<span style="color: #22c55e;">✅ Location: ' + lat + ', ' + lon + '</span>';
+                        btn.innerHTML = '<span>✓</span> Location Set';
+                        btn.style.background = '#22c55e';
+                        btn.style.color = 'white';
+                        
+                        // Store in localStorage for Streamlit to read
+                        localStorage.setItem('user_gps_lat', lat);
+                        localStorage.setItem('user_gps_lon', lon);
+                        localStorage.setItem('gps_updated', Date.now().toString());
+                    },
+                    function(err) {
+                        status.innerHTML = '<span style="color: #ef4444;">❌ ' + err.message + '</span>';
+                        btn.innerHTML = '<span>📍</span> Use My Current Location';
+                        btn.style.opacity = '1';
+                    },
+                    { enableHighAccuracy: true, timeout: 10000 }
+                );
+            }
+        </script>
+        """
+        st.components.v1.html(use_location_html, height=80)
         
-        # Destination place search
+        # Manual search fallback
+        with st.expander(t("search_origin_place"), expanded=False):
+            trip_origin_search = st.text_input("", key="trip_origin_search", placeholder="e.g., Milano Centrale", label_visibility="collapsed")
+            if st.button(t("search"), key="trip_origin_btn"):
+                results = geocode_place(trip_origin_search)
+                if results:
+                    st.session_state.trip_origin_results = results
+                else:
+                    st.error(t("place_not_found"))
+            
+            if "trip_origin_results" in st.session_state and st.session_state.trip_origin_results:
+                options = {i: r.get("display_name", "")[:50] for i, r in enumerate(st.session_state.trip_origin_results)}
+                selected = st.selectbox(t("select_location"), options.keys(), format_func=lambda x: options[x], key="trip_origin_select")
+                if selected is not None:
+                    r = st.session_state.trip_origin_results[selected]
+                    st.session_state.trip_from_lat = float(r["lat"])
+                    st.session_state.trip_from_lon = float(r["lon"])
+        
+        # Destination section
         st.markdown(f"**{t('destination')}**")
         trip_dest_search = st.text_input(t("search_destination_place"), key="trip_dest_search", placeholder="e.g., Duomo Milano")
         if st.button(t("search"), key="trip_dest_btn"):
@@ -1376,7 +1328,121 @@ elif menu == "Trips":
                 st.session_state.trip_to_lat = float(r["lat"])
                 st.session_state.trip_to_lon = float(r["lon"])
         
-        # Map for trip start/end with draggable markers
+        # GPS Live Tracking - Compact Card Style
+        st.markdown("---")
+        st.markdown(f"**🚴 {t('live_tracking')}**")
+        
+        gps_tracking_html = """
+        <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; background: #fafafa;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div id="track-status" style="font-size: 14px; font-weight: 500;">Ready to track</div>
+                    <div id="track-info" style="font-size: 12px; color: #6b7280; margin-top: 4px;">
+                        <span id="track-dist">0.00 km</span> · <span id="track-pts">0 points</span>
+                    </div>
+                </div>
+                <div>
+                    <button id="start-btn" onclick="startLiveTrack()" 
+                        style="padding: 6px 14px; border: none; border-radius: 6px; 
+                               background: #22c55e; color: white; cursor: pointer; font-weight: 500;">
+                        ▶ Start
+                    </button>
+                    <button id="stop-btn" onclick="stopLiveTrack()" 
+                        style="padding: 6px 14px; border: none; border-radius: 6px; 
+                               background: #ef4444; color: white; cursor: pointer; font-weight: 500; display: none;">
+                        ⏹ Stop
+                    </button>
+                </div>
+            </div>
+            <div id="coords-display" style="font-size: 11px; color: #9ca3af; margin-top: 8px; display: none;">
+                📍 <span id="cur-lat">--</span>, <span id="cur-lon">--</span> | <span id="cur-speed">0</span> km/h
+            </div>
+        </div>
+        <script>
+            let trackWatchId = null;
+            let trackData = [];
+            let trackDist = 0;
+            
+            function haversineDist(lat1, lon1, lat2, lon2) {
+                const R = 6371;
+                const dLat = (lat2 - lat1) * Math.PI / 180;
+                const dLon = (lon2 - lon1) * Math.PI / 180;
+                const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                          Math.sin(dLon/2) * Math.sin(dLon/2);
+                return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            }
+            
+            function startLiveTrack() {
+                if (!navigator.geolocation) { return; }
+                trackData = []; trackDist = 0;
+                document.getElementById('start-btn').style.display = 'none';
+                document.getElementById('stop-btn').style.display = 'inline-block';
+                document.getElementById('track-status').innerHTML = '🔴 Tracking...';
+                document.getElementById('coords-display').style.display = 'block';
+                
+                trackWatchId = navigator.geolocation.watchPosition(
+                    function(pos) {
+                        const lat = pos.coords.latitude;
+                        const lon = pos.coords.longitude;
+                        const spd = pos.coords.speed ? (pos.coords.speed * 3.6).toFixed(1) : '0';
+                        
+                        document.getElementById('cur-lat').textContent = lat.toFixed(5);
+                        document.getElementById('cur-lon').textContent = lon.toFixed(5);
+                        document.getElementById('cur-speed').textContent = spd;
+                        
+                        if (trackData.length > 0) {
+                            const last = trackData[trackData.length - 1];
+                            const d = haversineDist(last[0], last[1], lat, lon);
+                            if (d > 0.003) { trackDist += d; trackData.push([lat, lon]); }
+                        } else {
+                            trackData.push([lat, lon]);
+                            // Also set as origin
+                            localStorage.setItem('user_gps_lat', lat.toFixed(6));
+                            localStorage.setItem('user_gps_lon', lon.toFixed(6));
+                        }
+                        
+                        document.getElementById('track-dist').textContent = trackDist.toFixed(2) + ' km';
+                        document.getElementById('track-pts').textContent = trackData.length + ' points';
+                        
+                        // Save track for map display
+                        localStorage.setItem('gps_track', JSON.stringify(trackData));
+                    },
+                    function(err) { document.getElementById('track-status').innerHTML = '❌ ' + err.message; },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 2000 }
+                );
+            }
+            
+            function stopLiveTrack() {
+                if (trackWatchId) { navigator.geolocation.clearWatch(trackWatchId); trackWatchId = null; }
+                document.getElementById('start-btn').style.display = 'inline-block';
+                document.getElementById('stop-btn').style.display = 'none';
+                document.getElementById('track-status').innerHTML = '✅ Stopped · ' + trackData.length + ' points';
+            }
+        </script>
+        """
+        st.components.v1.html(gps_tracking_html, height=100)
+        
+        # Current coordinates display
+        st.caption(f"{t('origin')}: {safe_float(st.session_state.trip_from_lat):.4f}, {safe_float(st.session_state.trip_from_lon):.4f}")
+        st.caption(f"{t('destination')}: {safe_float(st.session_state.trip_to_lat):.4f}, {safe_float(st.session_state.trip_to_lon):.4f}")
+        
+        if st.button(t("create_trip"), use_container_width=True, type="primary"):
+            result = api_post("/api/trips", {
+                "user_id": user_id,
+                "from_lat": st.session_state.trip_from_lat,
+                "from_lon": st.session_state.trip_from_lon,
+                "to_lat": st.session_state.trip_to_lat,
+                "to_lon": st.session_state.trip_to_lon
+            })
+            if result:
+                st.success(t("trip_created"))
+                st.rerun()
+    
+    with col2:
+        st.subheader(t("your_trips"))
+        
+        # Map showing origin, destination, and any tracked route
         st.markdown(f"**{t('map_instructions')}**")
         trip_map = folium.Map(
             location=[(safe_float(st.session_state.trip_from_lat) + safe_float(st.session_state.trip_to_lat))/2, 
@@ -1416,7 +1482,6 @@ elif menu == "Trips":
         if trip_map_data and "last_object_clicked" in trip_map_data and trip_map_data["last_object_clicked"]:
             clicked = trip_map_data["last_object_clicked"]
             if "lat" in clicked and "lng" in clicked:
-                # Update origin if click is closer to origin
                 dist_to_origin = abs(clicked["lat"] - st.session_state.trip_from_lat) + abs(clicked["lng"] - st.session_state.trip_from_lon)
                 dist_to_dest = abs(clicked["lat"] - st.session_state.trip_to_lat) + abs(clicked["lng"] - st.session_state.trip_to_lon)
                 if dist_to_origin < dist_to_dest:
@@ -1426,24 +1491,8 @@ elif menu == "Trips":
                     st.session_state.trip_to_lat = clicked["lat"]
                     st.session_state.trip_to_lon = clicked["lng"]
         
-        # Show current coordinates
-        st.caption(f"{t('origin')}: {safe_float(st.session_state.trip_from_lat):.4f}, {safe_float(st.session_state.trip_from_lon):.4f}")
-        st.caption(f"{t('destination')}: {safe_float(st.session_state.trip_to_lat):.4f}, {safe_float(st.session_state.trip_to_lon):.4f}")
-        
-        if st.button(t("create_trip"), use_container_width=True, type="primary"):
-            result = api_post("/api/trips", {
-                "user_id": user_id,
-                "from_lat": st.session_state.trip_from_lat,
-                "from_lon": st.session_state.trip_from_lon,
-                "to_lat": st.session_state.trip_to_lat,
-                "to_lon": st.session_state.trip_to_lon
-            })
-            if result:
-                st.success(t("trip_created"))
-                st.rerun()
-    
-    with col2:
-        st.subheader(t("your_trips"))
+        # Trip history
+        st.markdown("---")
         trips = api_get("/api/trips", {"user_id": user_id})
         if trips:
             for trip in trips[:10]:
@@ -1635,5 +1684,5 @@ elif menu == "Settings":
 
 # ============== Footer ==============
 st.sidebar.markdown("---")
-st.sidebar.caption("BBP Road Monitor v2.7")
+st.sidebar.caption("BBP Road Monitor v2.8")
 st.sidebar.caption(f"Backend: {BACKEND_URL}")
