@@ -262,6 +262,21 @@ TRANSLATIONS = {
         "end_point": "End Point",
         "search_place": "Search place",
         "map_instructions": "Drag markers or click map to adjust locations",
+        "live_tracking": "Live GPS Tracking",
+        "start_tracking": "Start Tracking",
+        "stop_tracking": "Stop & Save Trip",
+        "tracking_active": "GPS Tracking Active",
+        "tracking_stopped": "Tracking Stopped",
+        "use_my_location": "Use My Location",
+        "getting_location": "Getting your location...",
+        "location_set": "Location set from GPS!",
+        "track_points": "Track Points",
+        "total_distance_tracked": "Distance Tracked",
+        "tracking_duration": "Tracking Duration",
+        "clear_track": "Clear Track",
+        "track_cleared": "Track cleared",
+        "gps_not_supported": "GPS not supported in your browser",
+        "or_track_live": "Or track your ride:",
     },
     "zh": {
         "app_title": "BBP 道路监测",
@@ -401,6 +416,21 @@ TRANSLATIONS = {
         "end_point": "结束点",
         "search_place": "搜索地点",
         "map_instructions": "拖动标记或点击地图调整位置",
+        "live_tracking": "实时GPS追踪",
+        "start_tracking": "开始追踪",
+        "stop_tracking": "停止并保存",
+        "tracking_active": "GPS追踪中",
+        "tracking_stopped": "追踪已停止",
+        "use_my_location": "使用我的位置",
+        "getting_location": "正在获取位置...",
+        "location_set": "已从GPS设置位置！",
+        "track_points": "追踪点数",
+        "total_distance_tracked": "已追踪距离",
+        "tracking_duration": "追踪时长",
+        "clear_track": "清除轨迹",
+        "track_cleared": "轨迹已清除",
+        "gps_not_supported": "您的浏览器不支持GPS",
+        "or_track_live": "或实时追踪骑行：",
     },
     "it": {
         "app_title": "BBP Monitor Stradale",
@@ -540,6 +570,21 @@ TRANSLATIONS = {
         "end_point": "Punto Finale",
         "search_place": "Cerca luogo",
         "map_instructions": "Trascina i marcatori o clicca sulla mappa",
+        "live_tracking": "Tracciamento GPS Live",
+        "start_tracking": "Inizia Tracciamento",
+        "stop_tracking": "Ferma e Salva",
+        "tracking_active": "Tracciamento GPS Attivo",
+        "tracking_stopped": "Tracciamento Fermato",
+        "use_my_location": "Usa La Mia Posizione",
+        "getting_location": "Ottenendo posizione...",
+        "location_set": "Posizione impostata da GPS!",
+        "track_points": "Punti Traccia",
+        "total_distance_tracked": "Distanza Tracciata",
+        "tracking_duration": "Durata Tracciamento",
+        "clear_track": "Cancella Traccia",
+        "track_cleared": "Traccia cancellata",
+        "gps_not_supported": "GPS non supportato nel browser",
+        "or_track_live": "Oppure traccia il tuo percorso:",
     }
 }
 
@@ -1185,6 +1230,111 @@ elif menu == "Trips":
     if "trip_to_lon" not in st.session_state:
         st.session_state.trip_to_lon = 9.190
     
+    # GPS Live Tracking Section
+    st.markdown(f"### {t('live_tracking')}")
+    
+    gps_tracking_html = """
+    <div style="padding: 15px; border-radius: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; margin: 10px 0;">
+        <div id="tracking-status" style="font-weight: bold; font-size: 16px;">📍 GPS Ready</div>
+        <div id="tracking-data" style="margin-top: 10px; display: none;">
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 14px;">
+                <div>Lat: <span id="track-lat">--</span></div>
+                <div>Lon: <span id="track-lon">--</span></div>
+                <div>Speed: <span id="track-speed">--</span> km/h</div>
+                <div>Points: <span id="track-points">0</span></div>
+            </div>
+            <div style="margin-top: 8px;">Distance: <span id="track-distance" style="font-weight: bold;">0.00</span> km</div>
+        </div>
+        <div style="margin-top: 12px;">
+            <button id="start-track-btn" onclick="startTracking()" style="padding: 8px 16px; border: none; border-radius: 5px; background: #4ade80; color: black; cursor: pointer; font-weight: bold;">▶ Start Tracking</button>
+            <button id="stop-track-btn" onclick="stopTracking()" style="padding: 8px 16px; border: none; border-radius: 5px; background: #f87171; color: white; cursor: pointer; font-weight: bold; display: none;">⏹ Stop</button>
+        </div>
+    </div>
+    <script>
+        let watchId = null;
+        let trackPoints = [];
+        let totalDistance = 0;
+        
+        function haversineDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+        
+        function startTracking() {
+            if (!navigator.geolocation) {
+                document.getElementById('tracking-status').textContent = '❌ GPS not supported';
+                return;
+            }
+            trackPoints = [];
+            totalDistance = 0;
+            document.getElementById('tracking-data').style.display = 'block';
+            document.getElementById('start-track-btn').style.display = 'none';
+            document.getElementById('stop-track-btn').style.display = 'inline-block';
+            document.getElementById('tracking-status').textContent = '🔴 TRACKING...';
+            
+            watchId = navigator.geolocation.watchPosition(
+                function(pos) {
+                    const lat = pos.coords.latitude;
+                    const lon = pos.coords.longitude;
+                    const speed = pos.coords.speed ? (pos.coords.speed * 3.6).toFixed(1) : '0';
+                    
+                    document.getElementById('track-lat').textContent = lat.toFixed(6);
+                    document.getElementById('track-lon').textContent = lon.toFixed(6);
+                    document.getElementById('track-speed').textContent = speed;
+                    
+                    if (trackPoints.length > 0) {
+                        const last = trackPoints[trackPoints.length - 1];
+                        const dist = haversineDistance(last.lat, last.lon, lat, lon);
+                        if (dist > 0.005) { // Only add if moved > 5 meters
+                            totalDistance += dist;
+                            trackPoints.push({lat, lon, time: Date.now()});
+                        }
+                    } else {
+                        trackPoints.push({lat, lon, time: Date.now()});
+                    }
+                    
+                    document.getElementById('track-points').textContent = trackPoints.length;
+                    document.getElementById('track-distance').textContent = totalDistance.toFixed(2);
+                },
+                function(err) {
+                    document.getElementById('tracking-status').textContent = '❌ GPS Error: ' + err.message;
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 3000 }
+            );
+        }
+        
+        function stopTracking() {
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            document.getElementById('start-track-btn').style.display = 'inline-block';
+            document.getElementById('stop-track-btn').style.display = 'none';
+            document.getElementById('tracking-status').textContent = '✅ Tracking Stopped - ' + trackPoints.length + ' points recorded';
+            
+            // Store track data in localStorage for potential retrieval
+            if (trackPoints.length > 1) {
+                localStorage.setItem('lastTrack', JSON.stringify({
+                    points: trackPoints,
+                    distance: totalDistance,
+                    startLat: trackPoints[0].lat,
+                    startLon: trackPoints[0].lon,
+                    endLat: trackPoints[trackPoints.length-1].lat,
+                    endLon: trackPoints[trackPoints.length-1].lon
+                }));
+            }
+        }
+    </script>
+    """
+    st.components.v1.html(gps_tracking_html, height=180)
+    
+    st.markdown("---")
+    
     col1, col2 = st.columns(2)
     
     with col1:
@@ -1485,5 +1635,5 @@ elif menu == "Settings":
 
 # ============== Footer ==============
 st.sidebar.markdown("---")
-st.sidebar.caption("BBP Road Monitor v2.5")
+st.sidebar.caption("BBP Road Monitor v2.7")
 st.sidebar.caption(f"Backend: {BACKEND_URL}")
