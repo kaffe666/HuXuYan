@@ -1027,26 +1027,38 @@ elif menu == "Segments":
         st.markdown(f"**{t('start_point')}**")
         seg_start_search = st.text_input(t("search_place"), key="seg_start_search", placeholder="e.g., Via Roma 1, Milano")
         if st.button(t("search"), key="seg_start_btn"):
-            coords = geocode_place(seg_start_search)
-            if coords:
-                st.session_state.seg_start_lat = coords[0]
-                st.session_state.seg_start_lon = coords[1]
-                st.success(f"✓ {coords[0]:.4f}, {coords[1]:.4f}")
+            results = geocode_place(seg_start_search)
+            if results:
+                st.session_state.seg_start_results = results
             else:
                 st.error(t("place_not_found"))
+        
+        if "seg_start_results" in st.session_state and st.session_state.seg_start_results:
+            options = {i: r.get("display_name", "")[:50] for i, r in enumerate(st.session_state.seg_start_results)}
+            selected = st.selectbox(t("select_location"), options.keys(), format_func=lambda x: options[x], key="seg_start_select")
+            if selected is not None:
+                r = st.session_state.seg_start_results[selected]
+                st.session_state.seg_start_lat = float(r["lat"])
+                st.session_state.seg_start_lon = float(r["lon"])
         st.caption(f"{st.session_state.seg_start_lat:.4f}, {st.session_state.seg_start_lon:.4f}")
         
         # End point place search
         st.markdown(f"**{t('end_point')}**")
         seg_end_search = st.text_input(t("search_place"), key="seg_end_search", placeholder="e.g., Via Roma 100, Milano")
         if st.button(t("search"), key="seg_end_btn"):
-            coords = geocode_place(seg_end_search)
-            if coords:
-                st.session_state.seg_end_lat = coords[0]
-                st.session_state.seg_end_lon = coords[1]
-                st.success(f"✓ {coords[0]:.4f}, {coords[1]:.4f}")
+            results = geocode_place(seg_end_search)
+            if results:
+                st.session_state.seg_end_results = results
             else:
                 st.error(t("place_not_found"))
+        
+        if "seg_end_results" in st.session_state and st.session_state.seg_end_results:
+            options = {i: r.get("display_name", "")[:50] for i, r in enumerate(st.session_state.seg_end_results)}
+            selected = st.selectbox(t("select_location"), options.keys(), format_func=lambda x: options[x], key="seg_end_select")
+            if selected is not None:
+                r = st.session_state.seg_end_results[selected]
+                st.session_state.seg_end_lat = float(r["lat"])
+                st.session_state.seg_end_lon = float(r["lon"])
         st.caption(f"{st.session_state.seg_end_lat:.4f}, {st.session_state.seg_end_lon:.4f}")
         
         status_options = ["optimal", "medium", "suboptimal", "maintenance"]
@@ -1157,25 +1169,37 @@ elif menu == "Trips":
         st.markdown(f"**{t('origin')}**")
         trip_origin_search = st.text_input(t("search_origin_place"), key="trip_origin_search", placeholder="e.g., Milano Centrale")
         if st.button(t("search"), key="trip_origin_btn"):
-            coords = geocode_place(trip_origin_search)
-            if coords:
-                st.session_state.trip_from_lat = coords[0]
-                st.session_state.trip_from_lon = coords[1]
-                st.success(f"✓ {coords[0]:.4f}, {coords[1]:.4f}")
+            results = geocode_place(trip_origin_search)
+            if results:
+                st.session_state.trip_origin_results = results
             else:
                 st.error(t("place_not_found"))
+        
+        if "trip_origin_results" in st.session_state and st.session_state.trip_origin_results:
+            options = {i: r.get("display_name", "")[:50] for i, r in enumerate(st.session_state.trip_origin_results)}
+            selected = st.selectbox(t("select_location"), options.keys(), format_func=lambda x: options[x], key="trip_origin_select")
+            if selected is not None:
+                r = st.session_state.trip_origin_results[selected]
+                st.session_state.trip_from_lat = float(r["lat"])
+                st.session_state.trip_from_lon = float(r["lon"])
         
         # Destination place search
         st.markdown(f"**{t('destination')}**")
         trip_dest_search = st.text_input(t("search_destination_place"), key="trip_dest_search", placeholder="e.g., Duomo Milano")
         if st.button(t("search"), key="trip_dest_btn"):
-            coords = geocode_place(trip_dest_search)
-            if coords:
-                st.session_state.trip_to_lat = coords[0]
-                st.session_state.trip_to_lon = coords[1]
-                st.success(f"✓ {coords[0]:.4f}, {coords[1]:.4f}")
+            results = geocode_place(trip_dest_search)
+            if results:
+                st.session_state.trip_dest_results = results
             else:
                 st.error(t("place_not_found"))
+        
+        if "trip_dest_results" in st.session_state and st.session_state.trip_dest_results:
+            options = {i: r.get("display_name", "")[:50] for i, r in enumerate(st.session_state.trip_dest_results)}
+            selected = st.selectbox(t("select_location"), options.keys(), format_func=lambda x: options[x], key="trip_dest_select")
+            if selected is not None:
+                r = st.session_state.trip_dest_results[selected]
+                st.session_state.trip_to_lat = float(r["lat"])
+                st.session_state.trip_to_lon = float(r["lon"])
         
         # Map for trip start/end with draggable markers
         st.markdown(f"**{t('map_instructions')}**")
@@ -1365,10 +1389,12 @@ elif menu == "Auto Detection":
         segment_id = st.selectbox(t("apply_to_segment"), options=list(segment_options.keys()), format_func=lambda x: segment_options[x])
         
         if st.button(t("submit_detection"), key="submit_det_btn"):
+            # Get the last values from sensor_data using column index instead of name
+            cols = sensor_data.columns.tolist()
             reading = {
-                "acceleration_x": float(sensor_data["Accel_X"].iloc[-1]) if len(sensor_data) > 0 else 0,
-                "acceleration_y": float(sensor_data["Accel_Y"].iloc[-1]) if len(sensor_data) > 0 else 0,
-                "acceleration_z": float(sensor_data["Accel_Z"].iloc[-1]) if len(sensor_data) > 0 else 0,
+                "acceleration_x": float(sensor_data.iloc[-1, 0]) if len(sensor_data) > 0 else 0,
+                "acceleration_y": float(sensor_data.iloc[-1, 1]) if len(sensor_data) > 0 else 0,
+                "acceleration_z": float(sensor_data.iloc[-1, 2]) if len(sensor_data) > 0 else 0,
                 "speed_mps": 5.0,
                 "gps_accuracy_m": 5.0
             }
