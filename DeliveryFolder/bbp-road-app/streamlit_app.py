@@ -74,6 +74,19 @@ def api_patch(endpoint: str, json_data: dict = None):
     except:
         return None
 
+def api_delete(endpoint: str):
+    """Make DELETE request to backend API."""
+    try:
+        resp = requests.delete(f"{BACKEND_URL}{endpoint}", timeout=10)
+        resp.raise_for_status()
+        return resp.json()
+    except requests.exceptions.ConnectionError:
+        st.error(f"Cannot connect to backend at {BACKEND_URL}. Is it running?")
+        return None
+    except Exception as e:
+        st.error(f"Delete Error: {e}")
+        return None
+
 def geocode_place(query: str):
     """Convert place name to coordinates using Nominatim."""
     try:
@@ -193,6 +206,8 @@ TRANSLATIONS = {
         "no_reports": "No reports yet",
         "confirmed": "Confirmed",
         "confirm_report": "Confirm",
+        "delete": "Delete",
+        "deleted": "Deleted",
         "trip_management": "Trip Management",
         "start_trip": "Start New Trip",
         "create_trip": "Create Trip",
@@ -350,6 +365,8 @@ TRANSLATIONS = {
         "no_reports": "暂无报告",
         "confirmed": "已确认",
         "confirm_report": "确认",
+        "delete": "删除",
+        "deleted": "已删除",
         "trip_management": "行程管理",
         "start_trip": "开始新行程",
         "create_trip": "创建行程",
@@ -507,6 +524,8 @@ TRANSLATIONS = {
         "no_reports": "Nessun rapporto",
         "confirmed": "Confermato",
         "confirm_report": "Conferma",
+        "delete": "Elimina",
+        "deleted": "Eliminato",
         "trip_management": "Gestione Viaggi",
         "start_trip": "Inizia Viaggio",
         "create_trip": "Crea Viaggio",
@@ -1077,13 +1096,16 @@ elif menu == "Segments":
             st_folium(m, width=None, height=400, returned_objects=[])
             
             st.subheader(t("segment_list"))
-            df = pd.DataFrame([{
-                "ID": s["id"],
-                t("road_name"): get_seg_name(s),
-                t("status"): s.get("status_localized", s.get("status", "unknown")),
-                t("obstacle"): s.get("obstacle", "-") or "-"
-            } for s in segments])
-            st.dataframe(df, use_container_width=True)
+            for s in segments:
+                seg_col1, seg_col2, seg_col3, seg_col4 = st.columns([1, 3, 2, 1])
+                seg_col1.write(f"**{s['id']}**")
+                seg_col2.write(get_seg_name(s))
+                seg_col3.write(s.get("status_localized", s.get("status", "unknown")))
+                if seg_col4.button("🗑️", key=f"del_seg_{s['id']}", help=t("delete")):
+                    result = api_delete(f"/api/segments/{s['id']}")
+                    if result:
+                        st.success(f"{t('deleted')} ID: {s['id']}")
+                        st.rerun()
         else:
             st.info(t("no_segments"))
     
@@ -1282,10 +1304,16 @@ elif menu == "Reports":
                 for report in reports[:10]:
                     with st.container():
                         st.markdown(f"**{report.get('note', '-')}**")
-                        rcol1, rcol2 = st.columns(2)
+                        rcol1, rcol2, rcol3 = st.columns([2, 2, 1])
                         rcol1.write(f"ID: {report.get('id', 'N/A')}")
                         status = "Yes" if report.get('confirmed') else "No"
                         rcol2.write(f"{t('confirmed')}: {status}")
+                        
+                        if rcol3.button("🗑️", key=f"del_report_{report['id']}", help=t("delete")):
+                            result = api_delete(f"/api/reports/{report['id']}")
+                            if result:
+                                st.success(f"{t('deleted')} ID: {report['id']}")
+                                st.rerun()
                         
                         if not report.get("confirmed"):
                             if st.button(f"{t('confirm_report')} #{report['id']}", key=f"confirm_{report['id']}"):
@@ -1581,10 +1609,15 @@ elif menu == "Trips":
                 if created and len(created) >= 10:
                     created = created[:10]
                 with st.expander(f"{t('trip')} #{trip['id']} - {created}"):
-                    tcol1, tcol2, tcol3 = st.columns(3)
+                    tcol1, tcol2, tcol3, tcol4 = st.columns([2, 2, 2, 1])
                     tcol1.metric(t("distance"), f"{trip.get('distance_km', 0):.2f} km")
                     tcol2.metric(t("duration"), trip.get("duration_str", "N/A"))
                     tcol3.metric(t("status"), trip.get("status", "N/A"))
+                    if tcol4.button("🗑️", key=f"del_trip_{trip['id']}", help=t("delete")):
+                        result = api_delete(f"/api/trips/{trip['id']}")
+                        if result:
+                            st.success(f"{t('deleted')} ID: {trip['id']}")
+                            st.rerun()
 
 # ============== Auto Detection ==============
 elif menu == "Auto Detection":
@@ -1765,5 +1798,5 @@ elif menu == "Settings":
 
 # ============== Footer ==============
 st.sidebar.markdown("---")
-st.sidebar.caption("BBP Road Monitor v2.9")
+st.sidebar.caption("BBP Road Monitor v3.0")
 st.sidebar.caption(f"Backend: {BACKEND_URL}")

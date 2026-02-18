@@ -1,0 +1,145 @@
+BBP Road Monitor - Demo Script
+===============================
+
+1. Login & Dashboard
+--------------------
+"Let's start with the BBP Road Monitor application. First, I'll login to the system."
+
+（点击网页，在 Username 输入框输入用户名，点击 Login 按钮）
+
+"After logging in, we can see the Dashboard which displays an overview of all statistics - total segments, active trips, and road condition distribution."
+
+（展示 Dashboard 页面的指标卡片和图表）
+
+
+2. Segments - Road Segment Management
+-------------------------------------
+"Now let's look at the Segments page where we can manage road segments."
+
+（点击左侧菜单 Segments）
+
+"I can add a new segment by searching for a location. Let me search for a starting point."
+
+（在 Start Point 下的搜索框输入 "Milano Centrale"，点击 Search 按钮，从下拉列表选择一个位置）
+
+"Then I'll search for the end point."
+
+（在 End Point 下的搜索框输入 "Duomo Milano"，点击 Search，选择位置）
+
+"Now I'll enter the road name and select its current condition."
+
+（输入 Road Name: "Via Dante"，Status 选择 "optimal"，点击 Create Segment）
+
+"The new segment is now visible on the map and in the segment list."
+
+（展示地图上的新路段和下方的列表）
+
+
+3. Reports - Road Condition Reports
+-----------------------------------
+"Next, let's submit a road condition report. This is how users can report issues they encounter."
+
+（点击左侧菜单 Reports）
+
+"I can search for the road location directly."
+
+（在搜索框输入 "Via Roma, Milano"，点击 Search，从列表选择位置）
+
+"The location is now shown on the map. I'll describe the road condition and add notes."
+
+（展示地图上的标记，Road Condition 滑块选择 "suboptimal"，在 Notes 输入 "Pothole near intersection"）
+
+"Now I submit the report."
+
+（点击 Submit 按钮）
+
+"The report has been submitted and will appear in the Recent Reports section."
+
+
+4. Trips - Trip Management with GPS
+-----------------------------------
+"The Trips page allows users to plan and track their cycling trips."
+
+（点击左侧菜单 Trips）
+
+"I can use my current GPS location as the starting point."
+
+（点击 "📍 Use My Current Location" 按钮，等待位置获取）
+
+"For the destination, I'll search for a place."
+
+（在 Destination 搜索框输入 "Parco Sempione"，点击 Search，选择位置）
+
+"The map on the right shows both origin and destination markers."
+
+（展示右侧地图上的绿色起点和红色终点标记）
+
+"I can also start live GPS tracking during my ride."
+
+（点击 GPS Tracking 区域的 "▶ Start" 按钮，展示追踪状态变为 "🔴 Tracking..."）
+
+"The tracker records my position, speed, distance, and number of points in real-time."
+
+（稍等几秒展示数据变化，然后点击 "⏹ Stop"）
+
+"Now I'll create the trip."
+
+（点击 Create Trip 按钮）
+
+"The trip is saved and appears in the Your Trips list."
+
+
+5. Auto Detection - Automatic Road Quality Detection
+-----------------------------------------------------
+"The Auto Detection feature uses phone sensors to automatically detect road conditions."
+
+（点击左侧菜单 Auto Detection）
+
+"I'll enable GPS positioning first."
+
+（点击 "Enable GPS" 按钮，等待位置获取显示）
+
+"The system can detect road quality based on acceleration data and speed. Let me run a detection."
+
+（展示 GPS 数据，点击 Detect Road Quality 按钮）
+
+"The detection result shows the current position has optimal road quality."
+
+（展示检测结果：位置、道路状况等）
+
+
+6. Route Planning
+-----------------
+"Route Planning helps cyclists find the best path between two locations."
+
+（点击左侧菜单 Route Planning）
+
+"I'll search for start and end points."
+
+（搜索起点和终点，选择位置）
+
+"After clicking Plan Route, the system calculates the optimal cycling route."
+
+（点击 Plan Route 按钮，展示地图上的规划路线）
+
+"It shows the total distance and estimated travel time."
+
+
+7. Settings - Multi-language Support
+------------------------------------
+"Finally, the Settings page allows users to customize their experience."
+
+（点击左侧菜单 Settings）
+
+"Users can change the interface language. The app supports English, Chinese, and Italian."
+
+（展示 Language 下拉菜单，选择 "中文"）
+
+"The entire interface updates to the selected language."
+
+（展示界面变成中文）
+
+
+Conclusion
+----------
+"This concludes our demonstration of the BBP Road Monitor application. The system provides comprehensive tools for cyclists to track road conditions, plan routes, and contribute to community road quality data."
