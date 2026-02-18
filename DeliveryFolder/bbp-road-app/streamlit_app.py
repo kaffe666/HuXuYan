@@ -187,6 +187,9 @@ TRANSLATIONS = {
         "submit": "Submit",
         "report_submitted": "Report submitted!",
         "recent_reports": "Recent Reports",
+        "report_location": "Report Location",
+        "or": "or",
+        "describe_issue": "Describe the road issue...",
         "no_reports": "No reports yet",
         "confirmed": "Confirmed",
         "confirm_report": "Confirm",
@@ -338,6 +341,9 @@ TRANSLATIONS = {
         "select_segment": "选择路段",
         "road_condition": "道路状况",
         "notes": "备注",
+        "report_location": "报告位置",
+        "or": "或",
+        "describe_issue": "描述道路问题...",
         "submit": "提交",
         "report_submitted": "报告提交成功！",
         "recent_reports": "最近报告",
@@ -492,6 +498,9 @@ TRANSLATIONS = {
         "select_segment": "Seleziona Segmento",
         "road_condition": "Condizione Strada",
         "notes": "Note",
+        "report_location": "Posizione segnalazione",
+        "or": "o",
+        "describe_issue": "Descrivi il problema stradale...",
         "submit": "Invia",
         "report_submitted": "Rapporto inviato!",
         "recent_reports": "Rapporti Recenti",
@@ -1154,43 +1163,113 @@ elif menu == "Segments":
 elif menu == "Reports":
     st.title(t("road_reports"))
     
+    # Initialize report location in session state
+    if "report_lat" not in st.session_state:
+        st.session_state.report_lat = 45.478
+    if "report_lon" not in st.session_state:
+        st.session_state.report_lon = 9.227
+    
     segments = api_get("/api/segments", {"user_id": user_id})
     
-    if segments:
-        segment_options = {s["id"]: f"{get_seg_name(s)} (ID: {s['id']})" for s in segments}
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader(t("submit_report"))
         
-        col1, col2 = st.columns(2)
+        # Location search (like Segments)
+        st.markdown(f"**{t('search_place')}**")
+        report_search = st.text_input("", key="report_search", placeholder="e.g., Via Roma, Milano", label_visibility="collapsed")
+        if st.button(t("search"), key="report_search_btn"):
+            results = geocode_place(report_search)
+            if results:
+                st.session_state.report_search_results = results
+            else:
+                st.error(t("place_not_found"))
         
-        with col1:
-            st.subheader(t("submit_report"))
-            with st.form("submit_report_form"):
+        if "report_search_results" in st.session_state and st.session_state.report_search_results:
+            options = {i: r.get("display_name", "")[:60] for i, r in enumerate(st.session_state.report_search_results)}
+            selected = st.selectbox(t("select_location"), options.keys(), format_func=lambda x: options[x], key="report_loc_select")
+            if selected is not None:
+                r = st.session_state.report_search_results[selected]
+                st.session_state.report_lat = float(r["lat"])
+                st.session_state.report_lon = float(r["lon"])
+                st.session_state.report_road_name = r.get("display_name", "").split(",")[0]
+        
+        st.caption(f"📍 {safe_float(st.session_state.report_lat):.5f}, {safe_float(st.session_state.report_lon):.5f}")
+        
+        # Map showing report location
+        report_map = folium.Map(
+            location=[safe_float(st.session_state.report_lat), safe_float(st.session_state.report_lon)],
+            zoom_start=15
+        )
+        folium.Marker(
+            [safe_float(st.session_state.report_lat), safe_float(st.session_state.report_lon)],
+            popup=t("report_location"),
+            icon=folium.Icon(color="red", icon="exclamation-sign")
+        ).add_to(report_map)
+        st_folium(report_map, width=None, height=200, returned_objects=[], key="report_map")
+        
+        # Report form
+        with st.form("submit_report_form"):
+            # Option 1: Select existing segment
+            if segments:
+                segment_options = {0: "-- " + t("search_place") + " --"}
+                segment_options.update({s["id"]: f"{get_seg_name(s)} (ID: {s['id']})" for s in segments})
+                
                 segment_id = st.selectbox(
-                    t("select_segment"),
+                    t("select_segment") + " (" + t("or") + ")",
                     options=list(segment_options.keys()),
                     format_func=lambda x: segment_options[x]
                 )
-                
-                condition = st.select_slider(
-                    t("road_condition"),
-                    options=["suboptimal", "medium", "optimal"],
-                    value="medium",
-                    format_func=lambda x: t(x)
-                )
-                
-                note = st.text_area(t("notes"), placeholder="...")
-                
-                if st.form_submit_button(t("submit")):
+            else:
+                segment_id = 0
+            
+            condition = st.select_slider(
+                t("road_condition"),
+                options=["suboptimal", "medium", "optimal"],
+                value="medium",
+                format_func=lambda x: t(x)
+            )
+            
+            note = st.text_area(t("notes"), placeholder=t("describe_issue"))
+            
+            if st.form_submit_button(t("submit"), use_container_width=True, type="primary"):
+                if segment_id and segment_id != 0:
+                    # Submit to existing segment
                     result = api_post(f"/api/segments/{segment_id}/reports", {
                         "user_id": user_id,
                         "note": note
                     })
-                    if result:
-                        st.success(t("report_submitted"))
-                        st.rerun()
+                else:
+                    # Create new segment from searched location, then report
+                    road_name = st.session_state.get("report_road_name", "Reported Road")
+                    new_seg = api_post("/api/segments", {
+                        "user_id": user_id,
+                        "road_name": road_name,
+                        "start_lat": st.session_state.report_lat,
+                        "start_lon": st.session_state.report_lon,
+                        "end_lat": st.session_state.report_lat + 0.001,
+                        "end_lon": st.session_state.report_lon + 0.001,
+                        "status": condition,
+                        "obstacle": note[:50] if note else None
+                    })
+                    if new_seg and "id" in new_seg:
+                        result = api_post(f"/api/segments/{new_seg['id']}/reports", {
+                            "user_id": user_id,
+                            "note": note
+                        })
+                    else:
+                        result = new_seg
+                
+                if result:
+                    st.success(t("report_submitted"))
+                    st.rerun()
+    
+    with col2:
+        st.subheader(t("recent_reports"))
         
-        with col2:
-            st.subheader(t("recent_reports"))
-            
+        if segments:
+            segment_options = {s["id"]: f"{get_seg_name(s)} (ID: {s['id']})" for s in segments}
             selected_seg = st.selectbox(
                 t("select_segment"),
                 options=list(segment_options.keys()),
@@ -1215,6 +1294,8 @@ elif menu == "Reports":
                         st.markdown("---")
             else:
                 st.info(t("no_reports"))
+        else:
+            st.info(t("no_segments"))
 
 # ============== Trips ==============
 elif menu == "Trips":
@@ -1684,5 +1765,5 @@ elif menu == "Settings":
 
 # ============== Footer ==============
 st.sidebar.markdown("---")
-st.sidebar.caption("BBP Road Monitor v2.8")
+st.sidebar.caption("BBP Road Monitor v2.9")
 st.sidebar.caption(f"Backend: {BACKEND_URL}")
