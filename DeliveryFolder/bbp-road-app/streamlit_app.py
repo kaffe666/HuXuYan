@@ -1,7 +1,8 @@
 """
 BBP Road Application - Streamlit Frontend
 Professional UI with full i18n support - Gemini Style
-Version: 2.4 - Build 20260218-0912 - Fixed geocoding search in all pages
+Version: 2.5 - Build 20260218-0917 - FORCE REFRESH
+All geocoding uses selectbox pattern (no coords[0] usage)
 """
 import streamlit as st
 import pandas as pd
@@ -1483,5 +1484,5 @@ elif menu == "Settings":
 
 # ============== Footer ==============
 st.sidebar.markdown("---")
-st.sidebar.caption("BBP Road Monitor v2.4 Build 0912")
+st.sidebar.caption("BBP Road Monitor v2.5")
 st.sidebar.caption(f"Backend: {BACKEND_URL}")
