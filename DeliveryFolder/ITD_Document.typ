@@ -1176,7 +1176,7 @@ ipconfig
   [Kaifei Xu], [Internationalization (i18n) - EN/ZH/IT], [5],
   [Kaifei Xu], [Testing & Debugging], [6],
   [Kaifei Xu], [ITD Documentation], [4],
-  [*Kaifei Xu Total*], [], [*63*],
+  [*Kaifei Xu Total*], [], [*53*],
   [], [], [],
   [Shinuo Yan], [Backend API Development Support], [12],
   [Shinuo Yan], [Database Schema Design], [8],
