@@ -1,6 +1,7 @@
 """
 BBP Road Application - Streamlit Frontend
 Professional UI with full i18n support - Gemini Style
+Version: 2.1 - Fixed geocoding and sensor data issues
 """
 import streamlit as st
 import pandas as pd
