@@ -1414,18 +1414,19 @@ elif menu == "Auto Detection":
         segment_id = st.selectbox(t("apply_to_segment"), options=list(segment_options.keys()), format_func=lambda x: segment_options[x])
         
         if st.button(t("submit_detection"), key="submit_det_btn"):
-            # Get the last values from sensor_data using column index instead of name
-            cols = sensor_data.columns.tolist()
+            # Get the last values from sensor_data using column index
+            # Backend expects z_axis_peak and speed
+            z_value = abs(float(sensor_data.iloc[-1, 2])) if len(sensor_data) > 0 else 0
             reading = {
-                "acceleration_x": float(sensor_data.iloc[-1, 0]) if len(sensor_data) > 0 else 0,
-                "acceleration_y": float(sensor_data.iloc[-1, 1]) if len(sensor_data) > 0 else 0,
-                "acceleration_z": float(sensor_data.iloc[-1, 2]) if len(sensor_data) > 0 else 0,
-                "speed_mps": 5.0,
+                "z_axis_peak": z_value,
+                "speed": 5.0,  # Default 5 m/s (~18 km/h) cycling speed
                 "gps_accuracy_m": 5.0
             }
             result = api_post(f"/api/segments/{segment_id}/auto-detect", reading)
             if result:
                 st.success(f"{t('submit_detection')}: {result.get('severity', detected)}")
+    else:
+        st.info(t("no_segments"))
 
 # ============== Settings ==============
 elif menu == "Settings":
