@@ -986,6 +986,21 @@ def create_segment(payload: SegmentCreate):
     return s
 
 
+@app.delete("/api/segments/{segment_id}")
+def delete_segment(segment_id: int):
+    """Delete a segment and all its associated reports."""
+    if segment_id not in SEGMENTS:
+        raise HTTPException(status_code=404, detail="segment_id not found")
+    
+    # Delete associated reports
+    report_ids_to_delete = [rid for rid, r in REPORTS.items() if r["segment_id"] == segment_id]
+    for rid in report_ids_to_delete:
+        del REPORTS[rid]
+    
+    del SEGMENTS[segment_id]
+    return {"ok": True, "deleted": segment_id, "reports_deleted": len(report_ids_to_delete)}
+
+
 # ---- reports ----
 @app.post("/api/segments/{segment_id}/reports")
 def create_report(segment_id: int, payload: ReportCreate):
@@ -1018,6 +1033,15 @@ def confirm_report(report_id: int):
         raise HTTPException(status_code=404, detail="report_id not found")
     REPORTS[report_id]["confirmed"] = True
     return REPORTS[report_id]
+
+
+@app.delete("/api/reports/{report_id}")
+def delete_report(report_id: int):
+    """Delete a report."""
+    if report_id not in REPORTS:
+        raise HTTPException(status_code=404, detail="report_id not found")
+    del REPORTS[report_id]
+    return {"ok": True, "deleted": report_id}
 
 
 @app.get("/api/segments/{segment_id}/aggregate")
