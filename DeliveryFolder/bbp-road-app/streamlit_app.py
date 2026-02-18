@@ -105,6 +105,22 @@ def reverse_geocode(lat: float, lon: float):
         pass
     return ""
 
+def safe_float(value, default=0.0):
+    """Safely convert value to float, handling dicts and other types."""
+    if value is None:
+        return default
+    if isinstance(value, dict):
+        # If it's a geocode result dict, try to extract lat/lon
+        if "lat" in value:
+            return float(value["lat"])
+        if "lon" in value:
+            return float(value["lon"])
+        return default
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return default
+
 # ============== Translations ==============
 TRANSLATIONS = {
     "en": {
@@ -555,6 +571,13 @@ if "dest_lon" not in st.session_state:
 if "sensor_readings" not in st.session_state:
     st.session_state.sensor_readings = []
 
+# Sanitize coordinate values to ensure they are floats (fix for stale session data)
+for coord_key in ["origin_lat", "origin_lon", "dest_lat", "dest_lon", "gps_lat", "gps_lon",
+                  "seg_start_lat", "seg_start_lon", "seg_end_lat", "seg_end_lon",
+                  "trip_from_lat", "trip_from_lon", "trip_to_lat", "trip_to_lon"]:
+    if coord_key in st.session_state and not isinstance(st.session_state[coord_key], (int, float)):
+        st.session_state[coord_key] = safe_float(st.session_state[coord_key], 45.4642 if "lat" in coord_key else 9.19)
+
 # ============== Dynamic CSS - Gemini Style ==============
 if st.session_state.dark_mode:
     st.markdown("""
@@ -817,7 +840,7 @@ elif menu == "Route Planning":
                 st.session_state.origin_lat = float(r["lat"])
                 st.session_state.origin_lon = float(r["lon"])
         
-        st.caption(f"{t('latitude')}: {st.session_state.origin_lat:.4f}, {t('longitude')}: {st.session_state.origin_lon:.4f}")
+        st.caption(f"{t('latitude')}: {safe_float(st.session_state.origin_lat):.4f}, {t('longitude')}: {safe_float(st.session_state.origin_lon):.4f}")
     
     with col_search2:
         st.subheader(t("destination"))
@@ -838,26 +861,26 @@ elif menu == "Route Planning":
                 st.session_state.dest_lat = float(r["lat"])
                 st.session_state.dest_lon = float(r["lon"])
         
-        st.caption(f"{t('latitude')}: {st.session_state.dest_lat:.4f}, {t('longitude')}: {st.session_state.dest_lon:.4f}")
+        st.caption(f"{t('latitude')}: {safe_float(st.session_state.dest_lat):.4f}, {t('longitude')}: {safe_float(st.session_state.dest_lon):.4f}")
     
     st.info(t("click_map_hint"))
     
     # Interactive map with draggable markers
-    center_lat = (st.session_state.origin_lat + st.session_state.dest_lat) / 2
-    center_lon = (st.session_state.origin_lon + st.session_state.dest_lon) / 2
+    center_lat = (safe_float(st.session_state.origin_lat) + safe_float(st.session_state.dest_lat)) / 2
+    center_lon = (safe_float(st.session_state.origin_lon) + safe_float(st.session_state.dest_lon)) / 2
     
     m = folium.Map(location=[center_lat, center_lon], zoom_start=13)
     
     # Add draggable markers
     folium.Marker(
-        [st.session_state.origin_lat, st.session_state.origin_lon],
+        [safe_float(st.session_state.origin_lat), safe_float(st.session_state.origin_lon)],
         popup=t("origin_marker"),
         icon=folium.Icon(color="green", icon="play"),
         draggable=True
     ).add_to(m)
     
     folium.Marker(
-        [st.session_state.dest_lat, st.session_state.dest_lon],
+        [safe_float(st.session_state.dest_lat), safe_float(st.session_state.dest_lon)],
         popup=t("dest_marker"),
         icon=folium.Icon(color="red", icon="stop"),
         draggable=True
@@ -865,8 +888,8 @@ elif menu == "Route Planning":
     
     # Draw line between points
     folium.PolyLine(
-        [[st.session_state.origin_lat, st.session_state.origin_lon],
-         [st.session_state.dest_lat, st.session_state.dest_lon]],
+        [[safe_float(st.session_state.origin_lat), safe_float(st.session_state.origin_lon)],
+         [safe_float(st.session_state.dest_lat), safe_float(st.session_state.dest_lon)]],
         color="blue", weight=2, opacity=0.5, dash_array="5"
     ).add_to(m)
     
@@ -1041,7 +1064,7 @@ elif menu == "Segments":
                 r = st.session_state.seg_start_results[selected]
                 st.session_state.seg_start_lat = float(r["lat"])
                 st.session_state.seg_start_lon = float(r["lon"])
-        st.caption(f"{st.session_state.seg_start_lat:.4f}, {st.session_state.seg_start_lon:.4f}")
+        st.caption(f"{safe_float(st.session_state.seg_start_lat):.4f}, {safe_float(st.session_state.seg_start_lon):.4f}")
         
         # End point place search
         st.markdown(f"**{t('end_point')}**")
@@ -1060,7 +1083,7 @@ elif menu == "Segments":
                 r = st.session_state.seg_end_results[selected]
                 st.session_state.seg_end_lat = float(r["lat"])
                 st.session_state.seg_end_lon = float(r["lon"])
-        st.caption(f"{st.session_state.seg_end_lat:.4f}, {st.session_state.seg_end_lon:.4f}")
+        st.caption(f"{safe_float(st.session_state.seg_end_lat):.4f}, {safe_float(st.session_state.seg_end_lon):.4f}")
         
         status_options = ["optimal", "medium", "suboptimal", "maintenance"]
         seg_status = st.selectbox(t("status"), status_options, format_func=lambda x: t(x), key="seg_status_select")
@@ -1205,14 +1228,14 @@ elif menu == "Trips":
         # Map for trip start/end with draggable markers
         st.markdown(f"**{t('map_instructions')}**")
         trip_map = folium.Map(
-            location=[(st.session_state.trip_from_lat + st.session_state.trip_to_lat)/2, 
-                      (st.session_state.trip_from_lon + st.session_state.trip_to_lon)/2], 
+            location=[(safe_float(st.session_state.trip_from_lat) + safe_float(st.session_state.trip_to_lat))/2, 
+                      (safe_float(st.session_state.trip_from_lon) + safe_float(st.session_state.trip_to_lon))/2], 
             zoom_start=12
         )
         
         # Origin marker (green)
         folium.Marker(
-            [st.session_state.trip_from_lat, st.session_state.trip_from_lon],
+            [safe_float(st.session_state.trip_from_lat), safe_float(st.session_state.trip_from_lon)],
             popup=t("origin"),
             icon=folium.Icon(color="green", icon="play"),
             draggable=True
@@ -1220,7 +1243,7 @@ elif menu == "Trips":
         
         # Destination marker (red)
         folium.Marker(
-            [st.session_state.trip_to_lat, st.session_state.trip_to_lon],
+            [safe_float(st.session_state.trip_to_lat), safe_float(st.session_state.trip_to_lon)],
             popup=t("destination"),
             icon=folium.Icon(color="red", icon="flag"),
             draggable=True
@@ -1228,8 +1251,8 @@ elif menu == "Trips":
         
         # Draw line between origin and destination
         folium.PolyLine(
-            [[st.session_state.trip_from_lat, st.session_state.trip_from_lon],
-             [st.session_state.trip_to_lat, st.session_state.trip_to_lon]],
+            [[safe_float(st.session_state.trip_from_lat), safe_float(st.session_state.trip_from_lon)],
+             [safe_float(st.session_state.trip_to_lat), safe_float(st.session_state.trip_to_lon)]],
             color="blue",
             weight=3,
             opacity=0.7,
@@ -1253,8 +1276,8 @@ elif menu == "Trips":
                     st.session_state.trip_to_lon = clicked["lng"]
         
         # Show current coordinates
-        st.caption(f"{t('origin')}: {st.session_state.trip_from_lat:.4f}, {st.session_state.trip_from_lon:.4f}")
-        st.caption(f"{t('destination')}: {st.session_state.trip_to_lat:.4f}, {st.session_state.trip_to_lon:.4f}")
+        st.caption(f"{t('origin')}: {safe_float(st.session_state.trip_from_lat):.4f}, {safe_float(st.session_state.trip_from_lon):.4f}")
+        st.caption(f"{t('destination')}: {safe_float(st.session_state.trip_to_lat):.4f}, {safe_float(st.session_state.trip_to_lon):.4f}")
         
         if st.button(t("create_trip"), use_container_width=True, type="primary"):
             result = api_post("/api/trips", {
